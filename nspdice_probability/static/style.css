@@ -7,6 +7,8 @@ body {
   height: 100px;
   width: 35px;
   min-width: 35px;
+  max-width: 35px;
+  vertical-align: top;
 }
 
 .choice .title {
@@ -21,12 +23,12 @@ body {
 .top .choice .title {
   transform: rotate(-90deg);
   transform-origin:0px 0px;
-  -ms-transform: rotate(-90deg); /* IE 9 */
-  -ms-transform-origin:0px 0px; /* IE 9 */
-  -webkit-transform: rotate(-90deg); /* Safari and Chrome */
-  -webkit-transform-origin:0px 0px; /* Safari and Chrome */
+  -ms-transform: rotate(-90deg);
+  -ms-transform-origin:0px 0px;
+  -webkit-transform: rotate(-90deg);
+  -webkit-transform-origin:0px 0px;
 
-  position: absolute;
+  position: relative;
   height: 35px;
   width: 100px;
   left: 0px;
@@ -79,11 +81,11 @@ body {
   margin-right: 10px;
 }
 
-div.config {
+.config {
   width: 210px;
 }
 
-.config .group ul.errorlist {
+.config .group .errorlist {
   margin: 0px;
   padding: 0px;
 }
