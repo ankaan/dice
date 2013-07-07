@@ -37,6 +37,8 @@ body {
 
 .top .choice .title .row {
   display: block;
+  margin-left: 5px;
+  margin-right: 5px;
 }
 
 .choice .title .col {
