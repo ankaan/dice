@@ -9,34 +9,37 @@ body {
   min-width: 35px;
 }
 
-.top .choice .skill-display, .top .choice .pro-display {
-  transform: rotate(90deg);
-  transform-origin:0px 0px;
-  -ms-transform: rotate(90deg); /* IE 9 */
-  -ms-transform-origin:0px 0px; /* IE 9 */
-  -webkit-transform: rotate(90deg); /* Safari and Chrome */
-  -webkit-transform-origin:0px 0px; /* Safari and Chrome */
-
+.choice .title {
   font-size: 14px;
   font-weight: bold;
+  overflow: hidden;
+  text-align: left;
 
   display: block;
+}
+
+.top .choice .title {
+  transform: rotate(-90deg);
+  transform-origin:0px 0px;
+  -ms-transform: rotate(-90deg); /* IE 9 */
+  -ms-transform-origin:0px 0px; /* IE 9 */
+  -webkit-transform: rotate(-90deg); /* Safari and Chrome */
+  -webkit-transform-origin:0px 0px; /* Safari and Chrome */
+
   position: absolute;
-  height: 15px;
+  height: 35px;
   width: 100px;
-
-  overflow: hidden;
-  text-align: right;
+  left: 0px;
+  top: 100px;
 }
 
-.top .choice .skill-display {
-  right: -100px;
-  top: 0px;
+.top .choice .title .row {
+  display: block;
 }
 
-.top .choice .pro-display {
-  right: -85px;
-  top: 0px;
+.choice .title .col {
+  margin-left: 5px;
+  margin-right: 5px;
 }
 
 .result td {
@@ -51,7 +54,12 @@ body {
 }
 
 .config .group {
-  margin: 0px;
+  margin: 3px;
+}
+
+.config .group input[type="text"] {
+  width: 200px;
+  height: 15px;
 }
 
 .config .group select, .config .group input {
@@ -60,11 +68,46 @@ body {
   font-size: 11px;
 }
 
+.result, .config {
+  display: inline-block;
+  zoom: 1;
+  *display: inline;
+  vertical-align: top;
+}
+
 .result {
-  float: left;
   margin-right: 10px;
 }
 
-.result .config {
-  clear: both;
+div.config {
+  width: 210px;
+}
+
+.config .group ul.errorlist {
+  margin: 0px;
+  padding: 0px;
+}
+
+.config .group .errorlist li {
+  display: inline-block;
+  zoom: 1;
+  *display: inline;
+  vertical-align: top;
+
+  margin: 0px;
+  padding-left: 3px;
+  padding-right: 3px;
+  font-size: 12px;
+  font-weight: bold;
+  
+  background-color: #EE5555;
+  border: solid 1px #AA3333;
+}
+
+.config .help ul {
+  margin: 0px;
+  padding-left: 25px;
+  list-style-position: outside;
+  list-style-type: disc;
+  font-size: 13px;
 }

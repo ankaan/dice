@@ -1,93 +1,11 @@
 from django import forms
-from django.forms.formsets import formset_factory
 from django.shortcuts import render
 
 from nspdice_probability.die import Die
+from nspdice_probability.formmanager import manager_factory
 
-class BaseFormManager(object):
-  """Manage multiple copies of the same form dynamically."""
-
-  def _add_form(self,form_id):
-    prefix = self._prefix+str(form_id)
-    form = self.form(self._data,prefix=prefix)
-    if form.keep():
-      self._forms.append(form)
-
-  def _add_form_extra(self,form_id):
-    prefix = self._prefix+str(form_id)
-    form = self.form(prefix=prefix)
-    self._forms_extra.append(form)
-
-  def forms(self):
-    return self._forms + self._forms_extra
-
-  def base_forms(self):
-    return self._forms
-
-  def extra_forms(self):
-    return self._forms_extra
-
-  def is_valid(self):
-    return all([ f.is_valid() for f in self._forms ])
-
-  def cleaned_data(self):
-    return [ f.cleaned_data for f in self._forms ]
-
-  def __init__(self,data=None,prefix=''):
-    """
-    Arguments:
-      data:     The data GET/POST data that the forms should be bound to.
-                Use None to make the forms unbound, which is the default.
-      prefix:   Each form gets this prefix in addition to a generated one.
-                By default empty.
-    """
-    self._prefix = prefix
-    if len(self._prefix)>0:
-      self._prefix += '-'
-
-    self._forms = []
-    self._forms_extra = []
-    self._data = data
-
-    form_ids = []
-    if data:
-      basenames = self.form().fields.keys()
-
-      # Loop over all field names provided by the user, with prefix removed.
-      for fn in [ fn[len(self._prefix):] for fn in data.keys() ]:
-        # Make sure it can be split into a form name and base name.
-        if fn.count('-')==1:
-          [name,bn] = fn.split('-')
-          # If the base name and form name is valid and not already known.
-          if bn in basenames and name.isdigit() and int(name) not in form_ids:
-            form_ids.append(int(name))
-
-    form_ids = sorted(form_ids)
-
-    for i in form_ids:
-      self._add_form(i)
-
-    if len(form_ids) > 0:
-      extra_offset = form_ids[-1]+1
-    else:
-      extra_offset = 0
-
-    # Add extra forms.
-    for i in range(self.extra):
-      self._add_form_extra(i+extra_offset)
-
-def manager_factory(form, manager=BaseFormManager, extra=1):
-  """
-  Return a manager for the given form.
-  
-  Arguments:
-    form:     The form tho create a manager for.
-    manager:  What form manager to create.
-    extra:    Number of extra initial forms.
-  """
-  attrs = { 'form': form, 'extra': extra }
-  return type(form.__name__+"Manager", (manager,), attrs)
-
+import re
+import string
 
 class ModeForm(forms.Form):
   MODE_CHOICES = (
@@ -149,9 +67,72 @@ class ColumnForm(forms.Form):
     else:
       return self.cleaned_data['skill'] != 'del'
 
+  def details(self):
+    return "%s\n%s"%(self.get_skill_display(),self.get_pro_display())
+
+class CustomDieForm(forms.Form):
+  die = forms.CharField(required=False)
+
+  num = None
+
+  _re_const = re.compile('^(\d+)$')
+  _re_single = re.compile('^d(\d+)$')
+  _re_multi = re.compile('^(\d+)d(\d+)$')
+
+  def get_skill_display(self):
+    return "Custom"
+
+  def get_pro_display(self):
+    return self.num
+
+  def clean_die(self):
+    raw = self.cleaned_data['die']
+    self.rawdice = raw.split()
+    if len(self.rawdice)==0:
+      return None
+
+    # Place-holder die that always rolls a sum of 0
+    die = Die.const(0)
+
+    # For each proposed die
+    for rd in self.rawdice:
+      # Check for constants
+      m = self._re_const.match(rd)
+      if m:
+        die += Die.const(int(m.group(1)))
+        
+        continue
+      
+      # Check for single die
+      m = self._re_single.match(rd)
+      if m:
+        die += Die(int(m.group(1)))
+        continue
+      
+      # Check for multiple copies of same die
+      m = self._re_multi.match(rd)
+      if m:
+        die += Die(int(m.group(2))).duplicate(int(m.group(1)))
+        continue
+
+      # None of the above matched; the die is invalid.
+      raise forms.ValidationError("Invalid die: %s"%rd)
+      
+    return die
+
+  def keep(self):
+    if not self.is_valid():
+      return True
+    else:
+      return self.cleaned_data['die'] != None
+
+  def details(self):
+    return string.join(self.rawdice)
+
+
 def probability_reference(request):
-  # Create factory...
   ColumnFormManager = manager_factory(ColumnForm)
+  CustomDieFormManager = manager_factory(CustomDieForm)
 
   mode = 'target'
   if "mode" in request.GET:
@@ -162,26 +143,46 @@ def probability_reference(request):
     modeform = ModeForm()
 
   columnmanager = ColumnFormManager(request.GET)
+  customdiemanager = CustomDieFormManager(request.GET)
+
+  for i, f in enumerate(customdiemanager.base_forms(),1):
+    f.num = i
+
+  if columnmanager.is_valid() and customdiemanager.is_valid():
+    # Create the corresponding die for each form.
+    dice = [
+      build_die(d['skill'],d['pro'])
+      for d in columnmanager.cleaned_data()
+    ]
+    dice += [ d['die'] for d in customdiemanager.cleaned_data() ]
+  else:
+    dice = []
 
   if mode == 'target':
-    if columnmanager.is_valid():
-      result = transpose([
-        # Create the corresponding die for each form and compute probability.
-        build_die(d['skill'],d['pro']).probability_reach()
-        for d in columnmanager.cleaned_data()
-      ])
-    else:
-      result = []
+    # Compute probability for each die.
+    result = transpose([ d.probability_reach() for d in dice ])
 
     return render(request, 'target.html', {
       'modeform': modeform,
       'columnmanager': columnmanager,
+      'customdiemanager': customdiemanager,
+      'result': result,
+    })
+
+  elif mode == 'vs':
+    result = [ [ a.probability_vs(b) for a in dice ] for b in dice ]
+
+    return render(request, 'versus.html', {
+      'modeform': modeform,
+      'columnmanager': columnmanager,
+      'customdiemanager': customdiemanager,
       'result': result,
     })
   else:
     return render(request, 'probability_reference.html', {
       'modeform': modeform,
       'columnmanager': columnmanager,
+      'customdiemanager': customdiemanager,
     })
 
 SKILL_DIE = {}

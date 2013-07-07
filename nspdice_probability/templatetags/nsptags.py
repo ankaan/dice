@@ -2,7 +2,7 @@ from django import template
 
 register = template.Library()
 
-register.filter('zip',zip)
+register.filter('zip',lambda x, y: zip(x,y))
 
 @register.filter(name='format')
 def format_filter(value,arg):

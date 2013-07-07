@@ -4,13 +4,17 @@
 {% block title %}NSP Probability to reach target{% endblock %}
 
 {% block result %}
+{% if result %}
+{% with forms=columnmanager.base_forms|add:customdiemanager.base_forms %}
 <table>
   <tr class="top">
     <td></td>
-    {% for form in columnmanager.base_forms %}
-    <th class="choice">
-      <span class="skill-display">{{ form.get_skill_display }}</span>
-      <span class="pro-display">{{ form.get_pro_display }}</span>
+    {% for form in forms %}
+    <th class="choice" title="{{ form.details }}">
+      <span class="title">
+        <span class="row">{{ form.get_skill_display }}</span>
+        <span class="row">{{ form.get_pro_display }}</span>
+      </span>
     </th>
     {% endfor %}
   </tr>
@@ -25,15 +29,6 @@
   </tr>
   {% endfor %}
 </table>
+{% endwith %}
+{% endif %}
 {% endblock %}
-
-{% comment %}
-{% block result_description %}
-<span class="description">
-  Table shows probability to reach target sum given different die
-  configurations. 0% probability indicates a probability less than 0.5% while
-  no probability at all indicates the target sum is impossible to reach. A
-  probability of 100% indicates a probability greater than 99.5%.
-</span>
-{% endblock %}
-{% endcomment %}

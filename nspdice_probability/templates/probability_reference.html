@@ -19,9 +19,25 @@
       </div>
       {% endfor %}
 
+      {% for form in customdiemanager.forms %}
+      <div class="group">
+        {{ form.die }}
+        {{ form.non_field_errors }}
+        {{ form.die.errors }}
+      </div>
+      {% endfor %}
+
       <div class="group">
         <span>{{ modeform.mode }}</span>
         <span><input type="submit" value="Submit"></span>
+      </div>
+
+      <div class="help">
+        <ul>
+          <li>Custom dice are separated by whitespace.</li>
+          <li>Normal dice: d4 2d6</li>
+          <li>Constant values: 5</li>
+        </ul>
       </div>
     </div>
   </div>
