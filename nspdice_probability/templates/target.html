@@ -1,0 +1,39 @@
+{% extends "probability_reference.html" %}
+{% load nsptags %}
+
+{% block title %}NSP Probability to reach target{% endblock %}
+
+{% block result %}
+<table>
+  <tr class="top">
+    <td></td>
+    {% for form in columnmanager.base_forms %}
+    <th class="choice">
+      <span class="skill-display">{{ form.get_skill_display }}</span>
+      <span class="pro-display">{{ form.get_pro_display }}</span>
+    </th>
+    {% endfor %}
+  </tr>
+
+  {% for row in result %}
+  <tr class="{% cycle 'row0' 'row1' %}">
+    <th>{{ forloop.counter0 }}</th>
+    {% for col in row %}
+    <td title="{{ col|default_if_none:0|fmul:100|stringformat:"f" }}%">{{ col|fmul:100|stringformat:".0f" }}</td>
+    {% endfor %}
+    <th>{{ forloop.counter0 }}</th>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
+
+{% comment %}
+{% block result_description %}
+<span class="description">
+  Table shows probability to reach target sum given different die
+  configurations. 0% probability indicates a probability less than 0.5% while
+  no probability at all indicates the target sum is impossible to reach. A
+  probability of 100% indicates a probability greater than 99.5%.
+</span>
+{% endblock %}
+{% endcomment %}

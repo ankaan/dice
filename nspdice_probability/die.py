@@ -39,7 +39,7 @@ class Die(object):
 
   def __add__(self,other):
     """
-    Create a new composide die by adding two dice together.
+    Create a new composite die by adding two dice together.
     """
 
     if type(other) is not Die:

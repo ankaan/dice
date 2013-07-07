@@ -1,0 +1,29 @@
+{% extends "toplevel.html" %}
+{% load nsptags %}
+
+{% block title %}NSP Probability reference{% endblock %}
+
+{% block content %}
+<form method="get" action="">
+  <div>
+    <div class="result">
+      {% block result %}{% endblock %}
+      {% block result_description %}{% endblock %}
+    </div>
+
+    <div class="config">
+      {% for form in columnmanager.forms %}
+      <div class="group">
+        <span>{{ form.skill }}</span>
+        <span>{{ form.pro }}</span>
+      </div>
+      {% endfor %}
+
+      <div class="group">
+        <span>{{ modeform.mode }}</span>
+        <span><input type="submit" value="Submit"></span>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
