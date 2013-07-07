@@ -17,7 +17,8 @@ class ModeForm(forms.Form):
   MODE_CHOICES = (
     ('target','Target'),
     ('vs','Versus'),
-    ('prob','Probability Plot'),
+    ('plot_target','Target Plot'),
+    ('plot_prob','Probability Plot'),
   )
 
   mode =  forms.ChoiceField(choices=MODE_CHOICES,required=False)
@@ -190,13 +191,25 @@ def _probability_reference(request, stage):
       'customdiemanager': customdiemanager,
       'result': result,
     })
-  elif mode == 'prob':
+  elif mode == 'plot_target':
     if stage=='plot':
-      return prob_plot(request,dice,columnmanager,customdiemanager)
+      return prob_plot(request,dice,columnmanager,customdiemanager,target=True)
     else:
       getvars = urllib.urlencode(request.GET)
 
-      return render(request, 'prob.html', {
+      return render(request, 'plot_target.html', {
+        'modeform': modeform,
+        'columnmanager': columnmanager,
+        'customdiemanager': customdiemanager,
+        'getvars': getvars,
+      })
+  elif mode == 'plot_prob':
+    if stage=='plot':
+      return prob_plot(request,dice,columnmanager,customdiemanager,target=False)
+    else:
+      getvars = urllib.urlencode(request.GET)
+
+      return render(request, 'plot_prob.html', {
         'modeform': modeform,
         'columnmanager': columnmanager,
         'customdiemanager': customdiemanager,
@@ -252,7 +265,7 @@ def transpose(data):
     return map(None,*data)
 
 
-def prob_plot(request,dice,columnmanager,customdiemanager):
+def prob_plot(request,dice,columnmanager,customdiemanager,target=False):
   fig = Figure(figsize=(12, 9),frameon=False)
   ax = Axes(fig,[0.06, 0.05, 0.77, 0.94])
   #ax.set_axis_off()
@@ -262,14 +275,20 @@ def prob_plot(request,dice,columnmanager,customdiemanager):
 
   ymax = 0
   for (d,f) in zip(dice,base_forms):
-    result = d.probability()+[0.0]
+    if target:
+      result = d.probability_reach()+[0.0]
+    else:
+      result = d.probability()+[0.0]
     ymax = max(ymax,max(result))
 
     label = "%s\n%s" % (f.get_skill_display(), f.get_pro_display())
     ax.plot(result,'-o',label=label)
   
   ax.set_ylabel('Probability')
-  ax.set_xlabel('Sum')
+  if target:
+    ax.set_xlabel('Target Sum')
+  else:
+    ax.set_xlabel('Sum')
   ax.grid(True)
 
   #box = ax.get_position()
