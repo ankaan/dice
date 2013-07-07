@@ -1,19 +1,6 @@
 from django.conf.urls import patterns, include, url
 
-# Uncomment the next two lines to enable the admin:
-# from django.contrib import admin
-# admin.autodiscover()
-
-urlpatterns = patterns('',
-    # Examples:
-    # url(r'^$', 'nspdice.views.home', name='home'),
-    # url(r'^nspdice/', include('nspdice.foo.urls')),
-
-    # Uncomment the admin/doc line below to enable admin documentation:
-    # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
-
-    # Uncomment the next line to enable the admin:
-    # url(r'^admin/', include(admin.site.urls)),
-
-    url(r'^$', 'nspdice_probability.views.probability_reference')
+urlpatterns = patterns('nspdice_probability.views',
+  url(r'^$', 'probability_reference', name='ref'),
+  url(r'^plot.png$', 'probability_reference_plot', name='ref-plot'),
 )

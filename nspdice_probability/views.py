@@ -1,4 +1,5 @@
 from django import forms
+from django.http import HttpResponse
 from django.shortcuts import render
 
 from nspdice_probability.die import Die
@@ -6,11 +7,17 @@ from nspdice_probability.formmanager import manager_factory
 
 import re
 import string
+import urllib
+
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.figure import Figure
+from matplotlib.pyplot import Axes
 
 class ModeForm(forms.Form):
   MODE_CHOICES = (
     ('target','Target'),
     ('vs','Versus'),
+    ('prob','Probability Plot'),
   )
 
   mode =  forms.ChoiceField(choices=MODE_CHOICES,required=False)
@@ -127,10 +134,15 @@ class CustomDieForm(forms.Form):
       return self.cleaned_data['die'] != None
 
   def details(self):
-    return string.join(self.rawdice)
-
+    return "Custom %d:\n%s"%(self.num,string.join(self.rawdice))
 
 def probability_reference(request):
+  return _probability_reference(request, stage='html')
+
+def probability_reference_plot(request):
+  return _probability_reference(request, stage='plot')
+
+def _probability_reference(request, stage):
   ColumnFormManager = manager_factory(ColumnForm)
   CustomDieFormManager = manager_factory(CustomDieForm)
 
@@ -178,6 +190,18 @@ def probability_reference(request):
       'customdiemanager': customdiemanager,
       'result': result,
     })
+  elif mode == 'prob':
+    if stage=='plot':
+      return prob_plot(request,dice,columnmanager,customdiemanager)
+    else:
+      getvars = urllib.urlencode(request.GET)
+
+      return render(request, 'prob.html', {
+        'modeform': modeform,
+        'columnmanager': columnmanager,
+        'customdiemanager': customdiemanager,
+        'getvars': getvars,
+      })
   else:
     return render(request, 'probability_reference.html', {
       'modeform': modeform,
@@ -226,3 +250,35 @@ def transpose(data):
     return map(lambda x: [x],*data)
   else:
     return map(None,*data)
+
+
+def prob_plot(request,dice,columnmanager,customdiemanager):
+  fig = Figure(figsize=(12, 9),frameon=False)
+  ax = Axes(fig,[0.06, 0.05, 0.77, 0.94])
+  #ax.set_axis_off()
+  fig.add_axes(ax)
+
+  base_forms = columnmanager.base_forms() + customdiemanager.base_forms()
+
+  ymax = 0
+  for (d,f) in zip(dice,base_forms):
+    result = d.probability()+[0.0]
+    ymax = max(ymax,max(result))
+
+    label = "%s\n%s" % (f.get_skill_display(), f.get_pro_display())
+    ax.plot(result,'-o',label=label)
+  
+  ax.set_ylabel('Probability')
+  ax.set_xlabel('Sum')
+  ax.grid(True)
+
+  #box = ax.get_position()
+  #ax.set_position([box.x0, box.y0, box.width * 0.9, box.height])
+  ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+  #ax.set_yticks([i/10.0 for i in range(0,11)])
+
+  canvas = FigureCanvas(fig)
+  response = HttpResponse(content_type='image/png')
+  canvas.print_png(response)
+  return response
