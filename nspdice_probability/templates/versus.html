@@ -14,7 +14,7 @@
     <th class="choice" title="{{ form.details }}">
       <span class="title">
         <span class="row">{{ form.get_skill_display }}</span>
-        <span class="row">{{ form.get_pro_display }}</span>
+        <span class="row">{{ form.get_attribute_display }}</span>
       </span>
     </th>
     {% endfor %}
@@ -29,7 +29,7 @@
     </th>
     <th class="choice" title="{{ form.details }}">
       <span class="title">
-        <span class="col">{{ form.get_pro_display }}</span>
+        <span class="col">{{ form.get_attribute_display }}</span>
       </span>
     </th>
 
@@ -42,14 +42,3 @@
 {% endwith %}
 {% endif %}
 {% endblock %}
-
-{% comment %}
-{% block result_description %}
-<span class="description">
-  Table shows probability to reach target sum given different die
-  configurations. 0% probability indicates a probability less than 0.5% while
-  no probability at all indicates the target sum is impossible to reach. A
-  probability of 100% indicates a probability greater than 99.5%.
-</span>
-{% endblock %}
-{% endcomment %}

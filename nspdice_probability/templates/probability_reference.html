@@ -16,12 +16,12 @@
       <div class="group">
         <div class="{% if forloop.first %}visible{% else %}ghost{% endif %}">
           {{ form.skill.label_tag }}
-          {{ form.pro.label_tag }}
+          {{ form.attribute.label_tag }}
         </div>
         
         <div>
           {{ form.skill }}
-          {{ form.pro }}
+          {{ form.attribute }}
         </div>
       </div>
       {% endfor %}

@@ -119,20 +119,20 @@ class ColumnForm(forms.Form):
     value = self.cleaned_data['skill']
     return dict(self._flatten(self.SKILL_CHOICES)).get(value, value)
 
-  def get_pro_display(self):
-    value = self.cleaned_data['pro']
+  def get_attribute_display(self):
+    value = self.cleaned_data['attribute']
     return dict(self._flatten(self.PRO_CHOICES)).get(value, value)
 
-  skill = forms.ChoiceField(choices=SKILL_CHOICES)
-  pro =   forms.ChoiceField(choices=PRO_CHOICES)
+  skill =     forms.ChoiceField(choices=SKILL_CHOICES)
+  attribute = forms.ChoiceField(choices=PRO_CHOICES)
 
   def keep(self):
     return any([not self.is_valid(),
                 self.cleaned_data['skill'] != 'del',
-                self.cleaned_data['pro'] != 'del'])
+                self.cleaned_data['attribute'] != 'del'])
 
   def details(self):
-    return "%s\n%s"%(self.get_skill_display(),self.get_pro_display())
+    return "%s\n%s"%(self.get_skill_display(),self.get_attribute_display())
 
 class CustomDieForm(forms.Form):
   die = forms.CharField(required=False)
@@ -146,7 +146,7 @@ class CustomDieForm(forms.Form):
   def get_skill_display(self):
     return "Custom %d" % self.num
 
-  def get_pro_display(self):
+  def get_attribute_display(self):
     return ""
 
   def clean_die(self):
@@ -220,7 +220,7 @@ def _probability_reference(request, stage):
   if columnmanager.is_valid() and customdiemanager.is_valid():
     # Create the corresponding die for each form.
     dice = [
-      SKILL_DIE[d['skill']] + PRO_DIE[d['pro']]
+      SKILL_DIE[d['skill']] + PRO_DIE[d['attribute']]
       for d in columnmanager.cleaned_data()
     ]
     dice += [ d['die'] for d in customdiemanager.cleaned_data() ]
@@ -302,7 +302,10 @@ def prob_plot(request,dice,columnmanager,customdiemanager,target=False):
       result = d.probability()+[0.0]
     ymax = max(ymax,max(result))
 
-    label = string.strip("%s\n%s" % (f.get_skill_display(),f.get_pro_display()))
+    label = string.strip("%s\n%s" % (
+      f.get_skill_display(),
+      f.get_attribute_display(),
+    ))
     ax.plot(result,'-o',label=label)
   
   ax.set_ylabel('Probability')
