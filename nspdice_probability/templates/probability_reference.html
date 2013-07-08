@@ -14,22 +14,42 @@
     <div class="config">
       {% for form in columnmanager.forms %}
       <div class="group">
-        <span>{{ form.skill }}</span>
-        <span>{{ form.pro }}</span>
+        <div class="{% if forloop.first %}visible{% else %}ghost{% endif %}">
+          {{ form.skill.label_tag }}
+          {{ form.pro.label_tag }}
+        </div>
+        
+        <div>
+          {{ form.skill }}
+          {{ form.pro }}
+        </div>
       </div>
       {% endfor %}
 
       {% for form in customdiemanager.forms %}
       <div class="group">
-        {{ form.die }}
-        {{ form.non_field_errors }}
-        {{ form.die.errors }}
+        <div class="{% if forloop.first %}visible{% else %}ghost{% endif %}">
+          <label for="{{ form.die.auto_id }}">Custom Dice</label>
+        </div>
+
+        <div>
+          {{ form.die }}
+        </div>
+        <div>
+          {{ form.non_field_errors }}
+          {{ form.die.errors }}
+        </div>
       </div>
       {% endfor %}
 
       <div class="group">
-        <span>{{ modeform.mode }}</span>
-        <span><input type="submit" value="Submit"></span>
+        <div class="visible">
+          {{ modeform.mode.label_tag }}
+        </div>
+        <div>
+          <span>{{ modeform.mode }}</span>
+          <span><input type="submit" value="Submit"></span>
+        </div>
       </div>
 
       <div class="help">

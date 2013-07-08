@@ -74,9 +74,21 @@ body {
   height: 20px;
 }
 
-.config .group select, .config .group input {
+.config .group select, .config .group input, .config .group label {
   width: 115px;
   font-size: 11px;
+}
+
+.config .group label {
+  display: inline-block;
+  zoom: 1;
+  *display: inline;
+  vertical-align: bottom;
+
+  font-weight: bold;
+  margin: 0px;
+  padding: 0px;
+  text-align: center;
 }
 
 .result, .config {
@@ -122,3 +134,8 @@ body {
   list-style-type: disc;
   font-size: 13px;
 }
+
+.config .ghost {
+  display: none;
+}
+
