@@ -91,10 +91,10 @@ class CustomDieForm(forms.Form):
   _re_multi = re.compile('^(\d+)d(\d+)$')
 
   def get_skill_display(self):
-    return "Custom"
+    return "Custom %d" % self.num
 
   def get_pro_display(self):
-    return self.num
+    return ""
 
   def clean_die(self):
     raw = self.cleaned_data['die']
@@ -284,7 +284,7 @@ def prob_plot(request,dice,columnmanager,customdiemanager,target=False):
       result = d.probability()+[0.0]
     ymax = max(ymax,max(result))
 
-    label = "%s\n%s" % (f.get_skill_display(), f.get_pro_display())
+    label = string.strip("%s\n%s" % (f.get_skill_display(),f.get_pro_display()))
     ax.plot(result,'-o',label=label)
   
   ax.set_ylabel('Probability')
