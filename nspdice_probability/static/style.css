@@ -66,7 +66,7 @@ body {
 }
 
 .config .group input[type="text"] {
-  width: 200px;
+  width: 230px;
   height: 15px;
 }
 
@@ -75,7 +75,7 @@ body {
 }
 
 .config .group select, .config .group input {
-  width: 100px;
+  width: 115px;
   font-size: 11px;
 }
 
@@ -91,7 +91,7 @@ body {
 }
 
 .config {
-  width: 210px;
+  width: 240px;
 }
 
 .config .group .errorlist {
