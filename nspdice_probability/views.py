@@ -8,6 +8,7 @@ from nspdice_probability.formmanager import manager_factory
 import re
 import string
 import urllib
+import operator
 
 from matplotlib import use as matplot_use
 matplot_use('cairo')
@@ -142,6 +143,9 @@ class CustomDieForm(forms.Form):
   _re_const = re.compile('^(\d+)$')
   _re_single = re.compile('^d(\d+)$')
   _re_multi = re.compile('^(\d+)d(\d+)$')
+  _re_seq = re.compile('^d(\d+)-d(\d+)$')
+
+  _die_seq = [4,6,8,10,12,20]
 
   def get_skill_display(self):
     return "Custom %d" % self.num
@@ -177,6 +181,22 @@ class CustomDieForm(forms.Form):
       m = self._re_multi.match(rd)
       if m:
         die += Die(int(m.group(2))).duplicate(int(m.group(1)))
+        continue
+      
+      # Check for die sequences
+      m = self._re_seq.match(rd)
+      if m:
+        try:
+          start = self._die_seq.index( int(m.group(1)) )
+          stop = self._die_seq.index( int(m.group(2)) )
+          if start>stop:
+            raise ValueError()
+        except ValueError:
+          raise forms.ValidationError("Invalid die sequence: %s"%rd)
+
+        dice = [ Die(n) for n in self._die_seq[start:stop+1] ]
+        die += reduce(operator.add, dice, Die.const(0))
+
         continue
 
       # None of the above matched; the die is invalid.
