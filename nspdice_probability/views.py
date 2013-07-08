@@ -9,6 +9,9 @@ import re
 import string
 import urllib
 
+from matplotlib import use as matplot_use
+matplot_use('cairo.png')
+
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.pyplot import Axes
