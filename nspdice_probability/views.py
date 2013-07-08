@@ -141,9 +141,9 @@ class CustomDieForm(forms.Form):
   num = None
 
   _re_const = re.compile('^(\d+)$')
-  _re_single = re.compile('^d(\d+)$')
-  _re_multi = re.compile('^(\d+)d(\d+)$')
-  _re_seq = re.compile('^d(\d+)-d(\d+)$')
+  _re_single = re.compile('^[dD](\d+)$')
+  _re_multi = re.compile('^(\d+)[dD](\d+)$')
+  _re_seq = re.compile('^[dD](\d+)-[dD](\d+)$')
 
   _die_seq = [4,6,8,10,12,20]
 
