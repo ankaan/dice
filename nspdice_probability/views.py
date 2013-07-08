@@ -19,13 +19,6 @@ from matplotlib.pyplot import Axes
 SKILL_DIE = {}
 SKILL_DIE['del'] = Die.const(0)
 
-SKILL_DIE['1'] = Die(6)
-SKILL_DIE['2'] = Die(8)
-SKILL_DIE['3'] = Die(10)
-SKILL_DIE['4'] = Die(12)
-SKILL_DIE['5'] = Die(20)
-SKILL_DIE['6'] = Die(20) + Die.const(6)
-
 SKILL_DIE['seq1'] = Die(4) + Die(6)
 SKILL_DIE['seq2'] = SKILL_DIE['seq1'] + Die(8)
 SKILL_DIE['seq3'] = SKILL_DIE['seq2'] + Die(10)
@@ -33,16 +26,15 @@ SKILL_DIE['seq4'] = SKILL_DIE['seq3'] + Die(12)
 SKILL_DIE['seq5'] = SKILL_DIE['seq4'] + Die(20)
 SKILL_DIE['seq6'] = SKILL_DIE['seq5'] + Die.const(6)
 
+SKILL_DIE['1'] = Die(6)
+SKILL_DIE['2'] = Die(8)
+SKILL_DIE['3'] = Die(10)
+SKILL_DIE['4'] = Die(12)
+SKILL_DIE['5'] = Die(20)
+SKILL_DIE['6'] = Die(20) + Die.const(6)
+
 PRO_DIE = {}
 PRO_DIE['del'] = Die.const(0)
-
-PRO_DIE['1'] = Die(4) + Die.const(1)
-PRO_DIE['2'] = Die(6)
-PRO_DIE['3'] = Die(8)
-PRO_DIE['4'] = Die(10)
-PRO_DIE['5'] = Die(12)
-PRO_DIE['6'] = Die(20)
-PRO_DIE['7'] = Die(20) + Die.const(6)
 
 PRO_DIE['seq1'] = Die(4) + Die.const(1)
 PRO_DIE['seq2'] = Die(4) + Die(6)
@@ -51,6 +43,14 @@ PRO_DIE['seq4'] = PRO_DIE['seq3'] + Die(10)
 PRO_DIE['seq5'] = PRO_DIE['seq4'] + Die(12)
 PRO_DIE['seq6'] = PRO_DIE['seq5'] + Die(20)
 PRO_DIE['seq7'] = PRO_DIE['seq6'] + Die.const(6)
+
+PRO_DIE['1'] = Die.const(1)
+PRO_DIE['2'] = Die(6)
+PRO_DIE['3'] = Die(8)
+PRO_DIE['4'] = Die(10)
+PRO_DIE['5'] = Die(12)
+PRO_DIE['6'] = Die(20)
+PRO_DIE['7'] = Die(20) + Die.const(6)
 
 class ModeForm(forms.Form):
   MODE_CHOICES = (
@@ -96,7 +96,7 @@ class ColumnForm(forms.Form):
       ('seq7','30 (D4-D20+6)'),
       )),
     ('Single Die', (
-      ('1','1-5 (D4+1)'),
+      ('1','1-5 (+1)'),
       ('2','6-10 (D6)'),
       ('3','11-15 (D8)'),
       ('4','16-20 (D10)'),
