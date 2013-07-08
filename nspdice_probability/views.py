@@ -10,7 +10,7 @@ import string
 import urllib
 
 from matplotlib import use as matplot_use
-matplot_use('cairo.png')
+matplot_use('cairo')
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -296,9 +296,8 @@ def prob_plot(request,dice,columnmanager,customdiemanager,target=False):
 
   #box = ax.get_position()
   #ax.set_position([box.x0, box.y0, box.width * 0.9, box.height])
-  ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-
-  #ax.set_yticks([i/10.0 for i in range(0,11)])
+  if dice:
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
   canvas = FigureCanvas(fig)
   response = HttpResponse(content_type='image/png')
