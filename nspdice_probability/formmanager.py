@@ -3,19 +3,26 @@
 class BaseFormManager(object):
   """Manage multiple copies of the same form dynamically."""
 
+  def _allow_new_form(self):
+    numforms = len(self._forms) + len(self._forms_extra)
+    return self.max_forms == None or numforms<self.max_forms
+
+
   def _add_form(self,form_id):
-    prefix = self._prefix+str(form_id)
-    form = self.form(self._data,prefix=prefix)
-    if form.keep():
-      self._forms.append(form)
-      return True
-    else:
-      return False
+    if self._allow_new_form():
+      prefix = self._prefix+str(form_id)
+      form = self.form(self._data,prefix=prefix)
+      if form.keep():
+        self._forms.append(form)
+        return True
+      else:
+        return False
 
   def _add_form_extra(self,form_id):
-    prefix = self._prefix+str(form_id)
-    form = self.form(prefix=prefix)
-    self._forms_extra.append(form)
+    if self._allow_new_form():
+      prefix = self._prefix+str(form_id)
+      form = self.form(prefix=prefix)
+      self._forms_extra.append(form)
 
   def forms(self):
     return self._forms + self._forms_extra
@@ -72,14 +79,15 @@ class BaseFormManager(object):
     for i in range(self.extra):
       self._add_form_extra(i+extra_offset)
 
-def manager_factory(form, manager=BaseFormManager, extra=1):
+def manager_factory(form, manager=BaseFormManager, extra=1, max_forms=None):
   """
   Return a manager for the given form.
   
   Arguments:
-    form:     The form tho create a manager for.
-    manager:  What form manager to create.
-    extra:    Number of extra initial forms.
+    form:       The form tho create a manager for.
+    manager:    What form manager to create.
+    extra:      Number of extra initial forms.
+    max_forms:  Maximum number of forms allowed. None for infinite, the default.
   """
-  attrs = { 'form': form, 'extra': extra }
+  attrs = { 'form': form, 'extra': extra, 'max_forms': max_forms }
   return type(form.__name__+"Manager", (manager,), attrs)

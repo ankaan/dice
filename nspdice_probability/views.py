@@ -17,6 +17,9 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.pyplot import Axes
 
+MAX_DICE = 10
+MAX_SIDES = 30
+
 SKILL_DIE = {}
 SKILL_DIE['del'] = Die.const(0)
 
@@ -135,10 +138,14 @@ class ColumnForm(forms.Form):
   def details(self):
     return "%s\n%s"%(self.get_skill_display(),self.get_attribute_display())
 
+def readsides(raw):
+  sides = int(raw)
+  if sides>MAX_SIDES:
+    raise forms.ValidationError("Max %d sides for a die"%MAX_SIDES)
+  return sides
+
 class CustomDieForm(forms.Form):
   die = forms.CharField(required=False)
-
-  num = None
 
   _re_const = re.compile('^(\d+)$')
   _re_single = re.compile('^[dD](\d+)$')
@@ -147,14 +154,26 @@ class CustomDieForm(forms.Form):
 
   _die_seq = [4,6,8,10,12,20]
 
+  def __init__(self,*args,**kwargs):
+    super(CustomDieForm, self).__init__(*args,**kwargs)
+
+    self.num = None
+    self._num_dice = 0
+
   def get_skill_display(self):
     return "Custom %d" % self.num
 
   def get_attribute_display(self):
     return ""
 
+  def _count_dice(self,num):
+    self._num_dice += num
+    if self._num_dice>MAX_DICE:
+      raise forms.ValidationError("Only %d dice are allowed."%MAX_DICE)
+
   def clean_die(self):
     raw = self.cleaned_data['die']
+
     self.rawdice = raw.split()
     if len(self.rawdice)==0:
       return None
@@ -174,13 +193,19 @@ class CustomDieForm(forms.Form):
       # Check for single die
       m = self._re_single.match(rd)
       if m:
-        die += Die(int(m.group(1)))
+        self._count_dice(1)
+        die += Die(readsides(m.group(1)))
         continue
       
       # Check for multiple copies of same die
       m = self._re_multi.match(rd)
       if m:
-        die += Die(int(m.group(2))).duplicate(int(m.group(1)))
+        copies = int(m.group(1))
+        sides = readsides(m.group(2))
+
+        self._count_dice(copies)
+
+        die += Die(sides).duplicate(copies)
         continue
       
       # Check for die sequences
@@ -193,6 +218,8 @@ class CustomDieForm(forms.Form):
             raise ValueError()
         except ValueError:
           raise forms.ValidationError("Invalid die sequence: %s"%rd)
+
+        self._count_dice(stop+1-start)
 
         dice = [ Die(n) for n in self._die_seq[start:stop+1] ]
         die += reduce(operator.add, dice, Die.const(0))
@@ -220,8 +247,8 @@ def probability_reference_plot(request):
   return _probability_reference(request, stage='plot')
 
 def _probability_reference(request, stage):
-  ColumnFormManager = manager_factory(ColumnForm)
-  CustomDieFormManager = manager_factory(CustomDieForm)
+  ColumnFormManager = manager_factory(ColumnForm,max_forms=60)
+  CustomDieFormManager = manager_factory(CustomDieForm,max_forms=10)
 
   mode = 'target'
   if "mode" in request.GET:
@@ -237,17 +264,8 @@ def _probability_reference(request, stage):
   for i, f in enumerate(customdiemanager.base_forms(),1):
     f.num = i
 
-  if columnmanager.is_valid() and customdiemanager.is_valid():
-    # Create the corresponding die for each form.
-    dice = [
-      SKILL_DIE[d['skill']] + PRO_DIE[d['attribute']]
-      for d in columnmanager.cleaned_data()
-    ]
-    dice += [ d['die'] for d in customdiemanager.cleaned_data() ]
-  else:
-    dice = []
-
   if mode == 'target':
+    dice = build_dice(columnmanager,customdiemanager)
     # Compute probability for each die.
     result = transpose([ d.probability_reach() for d in dice ])
 
@@ -259,6 +277,7 @@ def _probability_reference(request, stage):
     })
 
   elif mode == 'vs':
+    dice = build_dice(columnmanager,customdiemanager)
     result = [ [ a.probability_vs(b) for a in dice ] for b in dice ]
 
     return render(request, 'versus.html', {
@@ -269,6 +288,7 @@ def _probability_reference(request, stage):
     })
   elif mode == 'plot_target':
     if stage=='plot':
+      dice = build_dice(columnmanager,customdiemanager)
       return prob_plot(request,dice,columnmanager,customdiemanager,target=True)
     else:
       getvars = urllib.urlencode(request.GET)
@@ -281,6 +301,7 @@ def _probability_reference(request, stage):
       })
   elif mode == 'plot_prob':
     if stage=='plot':
+      dice = build_dice(columnmanager,customdiemanager)
       return prob_plot(request,dice,columnmanager,customdiemanager,target=False)
     else:
       getvars = urllib.urlencode(request.GET)
@@ -297,6 +318,19 @@ def _probability_reference(request, stage):
       'columnmanager': columnmanager,
       'customdiemanager': customdiemanager,
     })
+
+def build_dice(columnmanager,customdiemanager):
+  if columnmanager.is_valid() and customdiemanager.is_valid():
+    # Create the corresponding die for each form.
+    dice = [
+      SKILL_DIE[d['skill']] + PRO_DIE[d['attribute']]
+      for d in columnmanager.cleaned_data()
+    ]
+    dice += [ d['die'] for d in customdiemanager.cleaned_data() ]
+  else:
+    dice = []
+
+  return dice
 
 def transpose(data):
   if len(data)==0:
