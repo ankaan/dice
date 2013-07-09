@@ -2,10 +2,9 @@ from django import forms
 from django.http import HttpResponse
 from django.shortcuts import render
 
-from nspdice_probability.die import Die
+from nspdice_probability.die import Die, DieParseException
 from nspdice_probability.formmanager import manager_factory
 
-import re
 import string
 import urllib
 import operator
@@ -138,27 +137,13 @@ class ColumnForm(forms.Form):
   def details(self):
     return "%s\n%s"%(self.get_skill_display(),self.get_attribute_display())
 
-def readsides(raw):
-  sides = int(raw)
-  if sides>MAX_SIDES:
-    raise forms.ValidationError("Max %d sides for a die"%MAX_SIDES)
-  return sides
-
 class CustomDieForm(forms.Form):
   die = forms.CharField(required=False)
-
-  _re_const = re.compile('^(\d+)$')
-  _re_single = re.compile('^[dD](\d+)$')
-  _re_multi = re.compile('^(\d+)[dD](\d+)$')
-  _re_seq = re.compile('^[dD](\d+)-[dD](\d+)$')
-
-  _die_seq = [4,6,8,10,12,20]
 
   def __init__(self,*args,**kwargs):
     super(CustomDieForm, self).__init__(*args,**kwargs)
 
     self.num = None
-    self._num_dice = 0
 
   def get_skill_display(self):
     return "Custom %d" % self.num
@@ -166,70 +151,14 @@ class CustomDieForm(forms.Form):
   def get_attribute_display(self):
     return ""
 
-  def _count_dice(self,num):
-    self._num_dice += num
-    if self._num_dice>MAX_DICE:
-      raise forms.ValidationError("Only %d dice are allowed."%MAX_DICE)
-
   def clean_die(self):
     raw = self.cleaned_data['die']
-
     self.rawdice = raw.split()
-    if len(self.rawdice)==0:
-      return None
 
-    # Place-holder die that always rolls a sum of 0
-    die = Die.const(0)
-
-    # For each proposed die
-    for rd in self.rawdice:
-      # Check for constants
-      m = self._re_const.match(rd)
-      if m:
-        die += Die.const(int(m.group(1)))
-        
-        continue
-      
-      # Check for single die
-      m = self._re_single.match(rd)
-      if m:
-        self._count_dice(1)
-        die += Die(readsides(m.group(1)))
-        continue
-      
-      # Check for multiple copies of same die
-      m = self._re_multi.match(rd)
-      if m:
-        copies = int(m.group(1))
-        sides = readsides(m.group(2))
-
-        self._count_dice(copies)
-
-        die += Die(sides).duplicate(copies)
-        continue
-      
-      # Check for die sequences
-      m = self._re_seq.match(rd)
-      if m:
-        try:
-          start = self._die_seq.index( int(m.group(1)) )
-          stop = self._die_seq.index( int(m.group(2)) )
-          if start>stop:
-            raise ValueError()
-        except ValueError:
-          raise forms.ValidationError("Invalid die sequence: %s"%rd)
-
-        self._count_dice(stop+1-start)
-
-        dice = [ Die(n) for n in self._die_seq[start:stop+1] ]
-        die += reduce(operator.add, dice, Die.const(0))
-
-        continue
-
-      # None of the above matched; the die is invalid.
-      raise forms.ValidationError("Invalid die: %s"%rd)
-      
-    return die
+    try:
+      return Die.from_string(raw, max_sides=30, max_dice=10)
+    except DieParseException as e:
+      raise forms.ValidationError(e.args)
 
   def keep(self):
     if not self.is_valid():

@@ -2,6 +2,10 @@
 from itertools import *
 import operator
 import random
+import re
+
+class DieParseException(Exception):
+  pass
 
 class Die(object):
   """A generalized die."""
@@ -28,14 +32,92 @@ class Die(object):
       raise TypeError('Die.__init() either takes a list or an integer.')
 
   @classmethod
-  def const(called_class,value):
+  def const(self,value):
     """
     Create a die that always shows a certain value.
     """
     if type(value) is not int:
       raise TypeError('Die.const() only takes an integer.')
 
-    return called_class([0.0]*value + [1.0])
+    return self([0.0]*value + [1.0])
+
+  _re_const = re.compile('^(\d+)$')
+  _re_single = re.compile('^[dD](\d+)$')
+  _re_multi = re.compile('^(\d+)[dD](\d+)$')
+  _re_seq = re.compile('^[dD](\d+)-[dD](\d+)$')
+
+  _die_seq = [4,6,8,10,12,20]
+
+  @classmethod
+  def from_string(self,raw,max_sides=None,max_dice=None):
+    """
+    Create the composite die described in the string.
+
+    Arguments:
+      raw:        The input string that describes the die.
+      max_sides:  Maximum number of sides a die may have in the input.
+                  None for infinite, the default.
+      max_dice:   Maximum number of dice described in the input.
+                  None for infinite, the default.
+    """
+    rawdice = raw.split()
+    if len(rawdice) == 0:
+      return None
+
+    countdice = DiceCounter(max_dice).count
+    readsides = SideReader(max_sides).read
+    
+    # Place-holder die that always rolls a sum of 0
+    die = Die.const(0)
+
+    # For each proposed die
+    for rd in rawdice:
+      # Check for constants
+      m = self._re_const.match(rd)
+      if m:
+        die += Die.const(readsides(m.group(1)))
+        continue
+      
+      # Check for single die
+      m = self._re_single.match(rd)
+      if m:
+        countdice(1)
+        die += Die(readsides(m.group(1)))
+        continue
+      
+      # Check for multiple copies of same die
+      m = self._re_multi.match(rd)
+      if m:
+        copies = int(m.group(1))
+        sides = readsides(m.group(2))
+
+        countdice(copies)
+
+        die += Die(sides).duplicate(copies)
+        continue
+      
+      # Check for die sequences
+      m = self._re_seq.match(rd)
+      if m:
+        try:
+          start = self._die_seq.index( int(m.group(1)) )
+          stop = self._die_seq.index( int(m.group(2)) )
+          if start>stop:
+            raise ValueError()
+        except ValueError:
+          raise DieParseException("Invalid die sequence: %s"%rd)
+
+        countdice(stop+1-start)
+
+        dice = [ Die(n) for n in self._die_seq[start:stop+1] ]
+        die += reduce(operator.add, dice, Die.const(0))
+
+        continue
+
+      # None of the above matched; the die is invalid.
+      raise DieParseException("Invalid die: %s"%rd)
+      
+    return die
 
   def __add__(self,other):
     """
@@ -121,3 +203,24 @@ class Die(object):
       rnd -=w
       if rnd < 0:
         return i
+
+class DiceCounter(object):
+  def __init__(self,max_dice):
+    self._max_dice = max_dice
+    self._num_dice = 0
+
+  def count(self,dice):
+    self._num_dice += dice
+    if self._max_dice != None and self._num_dice > self._max_dice:
+      raise DieParseException("Only %d dice are allowed."%self._max_dice)
+
+class SideReader(object):
+  def __init__(self,max_sides):
+    self._max_sides = max_sides
+
+  def read(self,raw):
+    sides = int(raw)
+    if self._max_sides != None and sides > self._max_sides:
+      raise DieParseException("Max %d sides for a die"%self._max_sides)
+    return sides
+
