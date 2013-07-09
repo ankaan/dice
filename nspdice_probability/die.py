@@ -1,10 +1,16 @@
-"""Combine dice and compute probabilities for the composite die, also allow rolling of such dice."""
+"""
+Combine dice and compute probabilities for the composite die, also allow rolling of such dice.
+"""
 from itertools import *
 import operator
 import random
 import re
 
 class DieParseException(Exception):
+  """
+  Raised if it was not possible to create a composite die from the string
+  description.
+  """
   pass
 
 class Die(object):
@@ -138,11 +144,19 @@ class Die(object):
     return Die(sides)
 
   def __eq__(self,other):
+    """
+    Check if the dice are equal, this may fail to detect some dice that are
+    pratically equal but differ slightly due to inexactness in floating point
+    operations.
+    """
     self._normalize()
     other._normalize()
     return self._sides == other._sides
 
   def similar_to(self,other,ndigits=7):
+    """
+    Check if two dice are similar enough. Workaround for inexact float results.
+    """
     self._normalize()
     other._normalize()
     return all([ round(x-y,ndigits)==0.0 for (x,y) in
@@ -214,20 +228,37 @@ class Die(object):
     return len(self._sides)-1-from_back
 
 class DiceCounter(object):
+  """
+  Count number of dice.
+  """
   def __init__(self,max_dice):
+    """
+    Arguments:
+      max_dice:   The maximum number of dice allowed.
+    """
     self._max_dice = max_dice
     self._num_dice = 0
 
   def count(self,dice):
+    """Register the given number of dice."""
     self._num_dice += dice
     if self._max_dice != None and self._num_dice > self._max_dice:
       raise DieParseException("Only %d dice are allowed."%self._max_dice)
 
 class SideReader(object):
+  """
+  Read the number of sides (an integer) from a string, taking into account the
+  maximum number of sides for a die.
+  """
   def __init__(self,max_sides):
+    """
+    Arguments:
+      max_sides:  The maximum number of sides allowed for a die.
+    """
     self._max_sides = max_sides
 
   def read(self,raw):
+    """Read number of sides from a string."""
     sides = int(raw)
     if self._max_sides != None and sides > self._max_sides:
       raise DieParseException("Max %d sides for a die"%self._max_sides)
