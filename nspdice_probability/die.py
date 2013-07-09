@@ -195,6 +195,7 @@ class Die(object):
 
   def roll(self,rnd=None):
     """Roll the die."""
+    self._normalize()
     if rnd is None: 
       rnd = random.random()
     elif not (0.0 <= rnd < 1.0):

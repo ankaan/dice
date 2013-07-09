@@ -1,5 +1,7 @@
-from nspdice_probability.die import Die
+from nspdice_probability.die import Die, DieParseException
 from django.test import TestCase
+
+import operator
 
 class TestDie(TestCase):
 
@@ -51,7 +53,7 @@ class TestDie(TestCase):
     self.assertEqual(Die([0.0,1,1])+Die(10),Die([0,0.5,0.5])+Die(10))
 
   def test_duplicate(self):
-    self.assertEqual(Die(20).duplicate(1), Die(20))
+    self.assertEqual(Die(20).duplicate(0), Die.const(0))
     self.assertEqual(Die(20).duplicate(1), Die(20))
     self.assertEqual(Die(20).duplicate(2), Die(20)+Die(20))
     self.assertEqual(Die(8).duplicate(3), Die(8)+Die(8)+Die(8))
@@ -105,3 +107,40 @@ class TestDie(TestCase):
 
     self.assertRaises(ValueError,Die(10).roll,-0.2)
     self.assertRaises(ValueError,Die(10).roll,1.0)
+
+  def test_from_string(self):
+    self.assertEquals(Die.from_string(""),None)
+    self.assertEquals(Die.from_string(" "),None)
+    self.assertEquals(Die.from_string("d4"),Die(4))
+    self.assertEquals(Die.from_string("2d6"),Die(6).duplicate(2))
+    self.assertEquals(Die.from_string(" D12"),Die(12))
+    self.assertEquals(Die.from_string("13  "),Die.const(13))
+    self.assertEquals(Die.from_string("13 2"),Die.const(13)+Die.const(2))
+    self.assertEquals(Die.from_string("d20 d8 d4"),Die(20)+Die(8)+Die(4))
+    self.assertEquals(Die.from_string("d4-d4"),Die(4))
+    self.assertEquals(
+        Die.from_string("d4-d20"),
+        Die(4) + Die(6) + Die(8) + Die(10) + Die(12) + Die(20))
+
+    self.assertRaises(DieParseException,Die.from_string,"12e3")
+    self.assertRaises(DieParseException,Die.from_string,"h")
+    self.assertRaises(DieParseException,Die.from_string,"3d3d2")
+
+
+    self.assertEquals(
+        Die.from_string("5d10",max_dice=5,max_sides=10),
+        Die(10).duplicate(5))
+
+    self.assertEquals(
+        Die.from_string("2d10 3d10",max_dice=5,max_sides=10),
+        Die(10).duplicate(2) + Die(10).duplicate(3))
+
+    self.assertRaises(DieParseException,
+        Die.from_string, "6d10", max_dice=5, max_sides=10)
+
+    self.assertRaises(DieParseException,
+        Die.from_string, "2d2 4d3", max_dice=5, max_sides=10)
+
+    self.assertRaises(DieParseException,
+        Die.from_string, "2d11", max_dice=5, max_sides=10)
+
