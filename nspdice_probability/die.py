@@ -127,10 +127,11 @@ class Die(object):
     if type(other) is not Die:
       raise TypeError('Only a die can be added to another die.')
 
-    outcomes = [ (sv+ov,sp*op) for (sv,sp) in enumerate(self._sides)
-                               for (ov,op) in enumerate(other._sides) ]
+    sides = [0.0]*( self.max_side() + other.max_side() + 1 )
 
-    sides = [0.0] + [0.0] * max([ v for (v,p) in outcomes ])
+    outcomes = ( (sv+ov,sp*op) for (sv,sp) in enumerate(self._sides)
+                               for (ov,op) in enumerate(other._sides) )
+
     for (v,p) in outcomes:
       sides[v] += p
 
@@ -201,9 +202,16 @@ class Die(object):
     elif not (0.0 <= rnd < 1.0):
       raise ValueError("rnd must be in [0.0, 1.0)")
     for i, w in enumerate(self._sides):
-      rnd -=w
-      if rnd < 0:
+      rnd -= w
+      if rnd < 0.0:
         return i
+
+  def max_side(self):
+    # Find position (from back) of first side with non-zero probability.
+    from_back = next((i for (i,p) in enumerate(reversed(self._sides)) if p>0))
+    # Convert to position from front (this is the face value of the highest
+    # side.)
+    return len(self._sides)-1-from_back
 
 class DiceCounter(object):
   def __init__(self,max_dice):
@@ -224,4 +232,3 @@ class SideReader(object):
     if self._max_sides != None and sides > self._max_sides:
       raise DieParseException("Max %d sides for a die"%self._max_sides)
     return sides
-

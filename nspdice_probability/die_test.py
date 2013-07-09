@@ -99,11 +99,12 @@ class TestDie(TestCase):
     self.assertEquals(Die(10).roll(0.59),6)
 
     self.assertEquals(Die([0.0,0.2,0.7,0.1]).roll(0),1)
-    self.assertEquals(Die([0.0,0.2,0.7,0.1]).roll(0.1999),1)
-    self.assertEquals(Die([0.0,0.2,0.7,0.1]).roll(0.2),2)
-    self.assertEquals(Die([0.0,0.2,0.7,0.1]).roll(0.8999),2)
-    self.assertEquals(Die([0.0,0.2,0.7,0.1]).roll(0.9),3)
-    self.assertEquals(Die([0.0,0.2,0.7,0.1]).roll(0.9999),3)
+    self.assertEquals(Die([0.0,0.2,0.7,0.1]).roll(0.000001),1)
+    self.assertEquals(Die([0.0,0.2,0.7,0.1]).roll(0.199999),1)
+    self.assertEquals(Die([0.0,0.2,0.7,0.1]).roll(0.200001),2)
+    self.assertEquals(Die([0.0,0.2,0.7,0.1]).roll(0.899999),2)
+    self.assertEquals(Die([0.0,0.2,0.7,0.1]).roll(0.900001),3)
+    self.assertEquals(Die([0.0,0.2,0.7,0.1]).roll(0.999999),3)
 
     self.assertRaises(ValueError,Die(10).roll,-0.2)
     self.assertRaises(ValueError,Die(10).roll,1.0)
@@ -143,4 +144,14 @@ class TestDie(TestCase):
 
     self.assertRaises(DieParseException,
         Die.from_string, "2d11", max_dice=5, max_sides=10)
+
+  def test_max_side(self):
+    self.assertRaises(StopIteration, Die([0]).max_side)
+    self.assertRaises(StopIteration, Die([0,0,0,0]).max_side)
+    self.assertEquals(Die([]).max_side(), 0)
+    self.assertEquals(Die([1]).max_side(), 0)
+    self.assertEquals(Die([1,0]).max_side(), 0)
+    self.assertEquals(Die([0,1,2,3,4,5,1]).max_side(), 6)
+    self.assertEquals(Die([0,2,2,3,4,9,0]).max_side(), 5)
+    self.assertEquals(Die([0,9,0,2,1,0,0]).max_side(), 4)
 

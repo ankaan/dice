@@ -160,7 +160,7 @@ class CustomDieForm(forms.Form):
     self.rawdice = raw.split()
 
     try:
-      return Die.from_string(raw, max_sides=30, max_dice=10)
+      return Die.from_string(raw, max_sides=30, max_dice=15)
     except DieParseException as e:
       raise forms.ValidationError(*e.args)
 
