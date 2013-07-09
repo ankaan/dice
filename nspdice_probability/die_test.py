@@ -9,16 +9,21 @@ class TestDie(TestCase):
     self.assertRaises(ZeroDivisionError,Die,0)
 
     self.assertEquals(Die(4).probability(),[0.0, 0.25, 0.25, 0.25, 0.25])
-    self.assertEquals(Die([]).probability(),[1.0])
+
+    self.assertEquals(Die([0,0.5,0.5,0])._sides,[0,0.5,0.5])
+    self.assertEquals(Die([0,0.5,0.5,0]),Die([0,0.5,0.5]))
+    self.assertEquals(Die([0,1,1,1,1]),Die([0,0.25,0.25,0.25,0.25]))
+
 
     seq = [0.0, 0.2, 0.3, 0.5]
     self.assertEquals(Die(seq).probability(),seq)
 
-    self.assertEqual(Die(5),Die([0.0, 0.2, 0.2, 0.2, 0.2, 0.2]))
+    self.assertEquals(Die(5),Die([0.0, 0.2, 0.2, 0.2, 0.2, 0.2]))
 
     self.assertRaises(TypeError,Die,(1,2,3))
     self.assertRaises(TypeError,Die,Die(3))
     self.assertRaises(ValueError,Die,-1)
+    self.assertRaises(ValueError,Die,[])
 
   def test_const(self):
     self.assertEquals(Die.const(0).probability(),[1.0])
@@ -31,7 +36,7 @@ class TestDie(TestCase):
 
     left  = (Die(2) + Die(10)) + Die(20)
     right = Die(2) + (Die(10) + Die(20))
-    self.assertTrue(left.similar_to(right))
+    self.assertEquals(left,right)
 
     inc = Die(8) + Die(12)
     dec = Die(12) + Die(8)
@@ -58,17 +63,14 @@ class TestDie(TestCase):
     self.assertEqual(Die(20).duplicate(2), Die(20)+Die(20))
     self.assertEqual(Die(8).duplicate(3), Die(8)+Die(8)+Die(8))
 
-    a = Die(5).duplicate(20)
-    b = Die(5)+Die(5).duplicate(19)
-    self.assertTrue(a.similar_to(b))
+    self.assertEquals(Die(5).duplicate(20), Die(5)+Die(5).duplicate(19))
 
     a = (Die(5) + Die(10)).duplicate(3)
     b = Die(5).duplicate(3) + Die(10).duplicate(3)
-    self.assertTrue(a.similar_to(b))
+    self.assertEquals(a,b)
 
   def test_probability(self):
     self.assertEquals(Die(4).probability(),[0.0, 0.25, 0.25, 0.25, 0.25])
-    self.assertEquals(Die([]).probability(),[1.0])
     self.assertEquals(Die(5),Die([0.0, 0.2, 0.2, 0.2, 0.2, 0.2]))
 
     self.assertEqual(Die([0.0,1,1]),Die([0,0.5,0.5]))
@@ -144,14 +146,4 @@ class TestDie(TestCase):
 
     self.assertRaises(DieParseException,
         Die.from_string, "2d11", max_dice=5, max_sides=10)
-
-  def test_max_side(self):
-    self.assertRaises(StopIteration, Die([0]).max_side)
-    self.assertRaises(StopIteration, Die([0,0,0,0]).max_side)
-    self.assertEquals(Die([]).max_side(), 0)
-    self.assertEquals(Die([1]).max_side(), 0)
-    self.assertEquals(Die([1,0]).max_side(), 0)
-    self.assertEquals(Die([0,1,2,3,4,5,1]).max_side(), 6)
-    self.assertEquals(Die([0,2,2,3,4,9,0]).max_side(), 5)
-    self.assertEquals(Die([0,9,0,2,1,0,0]).max_side(), 4)
 

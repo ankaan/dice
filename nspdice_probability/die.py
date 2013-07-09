@@ -21,14 +21,24 @@ class Die(object):
     Create a die based on a liste of probabilities where the index is the outcome or a fair die with the given number of sides.
     """
 
-    self._normalized = False
     self._reach = None
 
     if type(sides) is list:
       if len(sides)==0:
-        self._sides = [1.0]
+        raise ValueError('Invalid probabilities.')
       else:
-        self._sides = sides
+        total_probability = float(sum(sides))
+
+        if total_probability == 0.0 or any(float(s)<0.0 for s in sides):
+          raise ValueError('Invalid probabilities.')
+
+        self._sides = [ float(s)/total_probability for s in sides ]
+
+        for (i,s) in enumerate(reversed(self._sides),1):
+          if s>0.0:
+            break
+          else:
+            del self._sides[-i]
     elif type(sides) is int:
       if sides>=0:
         self._sides = [0.0] + [1.0/sides]*sides
@@ -133,7 +143,7 @@ class Die(object):
     if type(other) is not Die:
       raise TypeError('Only a die can be added to another die.')
 
-    sides = [0.0]*( self.max_side() + other.max_side() + 1 )
+    sides = [0.0]*( len(self._sides) + len(other._sides) - 1 )
 
     outcomes = ( (sv+ov,sp*op) for (sv,sp) in enumerate(self._sides)
                                for (ov,op) in enumerate(other._sides) )
@@ -145,42 +155,27 @@ class Die(object):
 
   def __eq__(self,other):
     """
-    Check if the dice are equal, this may fail to detect some dice that are
-    pratically equal but differ slightly due to inexactness in floating point
-    operations.
+    Check if two dice are similar enough. Workaround for inexact float results.
     """
-    self._normalize()
-    other._normalize()
-    return self._sides == other._sides
+    return self.similar_to(other)
 
-  def similar_to(self,other,ndigits=7):
+  def similar_to(self,other,ndigits=12):
     """
     Check if two dice are similar enough. Workaround for inexact float results.
     """
-    self._normalize()
-    other._normalize()
     return all([ round(x-y,ndigits)==0.0 for (x,y) in
-      zip(self._sides,other._sides) ])
+        map(None,self._sides,other._sides) ])
 
   def duplicate(self,num):
     """Duplicate the die the given number of times."""
     return reduce(operator.add, [self]*num, Die.const(0))
 
-  def _normalize(self):
-    """Normalize probabilities."""
-    if not self._normalized:
-      total_probability = sum(self._sides)
-      self._sides = [ s/total_probability for s in self._sides ]
-      self._normalized = True
-
   def probability(self):
     """Get the probabilities for rolling the positional number."""
-    self._normalize()
     return self._sides
 
   def _compute_reach(self):
     """Compute the probabilities to roll at least the positional number."""
-    self._normalize()
 
     if self._reach is None:
       self._reach = []
@@ -210,7 +205,6 @@ class Die(object):
 
   def roll(self,rnd=None):
     """Roll the die."""
-    self._normalize()
     if rnd is None: 
       rnd = random.random()
     elif not (0.0 <= rnd < 1.0):
@@ -219,13 +213,6 @@ class Die(object):
       rnd -= w
       if rnd < 0.0:
         return i
-
-  def max_side(self):
-    # Find position (from back) of first side with non-zero probability.
-    from_back = next((i for (i,p) in enumerate(reversed(self._sides)) if p>0))
-    # Convert to position from front (this is the face value of the highest
-    # side.)
-    return len(self._sides)-1-from_back
 
 class DiceCounter(object):
   """
