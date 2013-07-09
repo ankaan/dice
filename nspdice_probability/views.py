@@ -158,7 +158,7 @@ class CustomDieForm(forms.Form):
     try:
       return Die.from_string(raw, max_sides=30, max_dice=10)
     except DieParseException as e:
-      raise forms.ValidationError(e.args)
+      raise forms.ValidationError(*e.args)
 
   def keep(self):
     if not self.is_valid():
