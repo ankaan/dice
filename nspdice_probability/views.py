@@ -21,6 +21,7 @@ MAX_SIDES = 30
 
 SKILL_DIE = {}
 SKILL_DIE['del'] = Die.const(0)
+SKILL_DIE['basic'] = Die(4)
 
 SKILL_DIE['seq1'] = Die(4) + Die(6)
 SKILL_DIE['seq2'] = SKILL_DIE['seq1'] + Die(8)
@@ -38,6 +39,7 @@ SKILL_DIE['6'] = Die(20) + Die.const(6)
 
 PRO_DIE = {}
 PRO_DIE['del'] = Die.const(0)
+PRO_DIE['basic'] = Die(4)
 
 PRO_DIE['seq1'] = Die(4) + Die.const(1)
 PRO_DIE['seq2'] = Die(4) + Die(6)
@@ -78,6 +80,7 @@ class ColumnForm(forms.Form):
       ('seq6','LvL 6 (D4-D20+6)'),
       )),
     ('Single Die', (
+      ('basic','Basic (D4)'),
       ('1','LvL 1 (D6)'),
       ('2','LvL 2 (D8)'),
       ('3','LvL 3 (D10)'),
@@ -99,7 +102,8 @@ class ColumnForm(forms.Form):
       ('seq7','30 (D4-D20+6)'),
       )),
     ('Single Die', (
-      ('1','1-5 (+1)'),
+      ('basic','Basic (D4)'),
+      ('1','1-5 (D4+1)'),
       ('2','6-10 (D6)'),
       ('3','11-15 (D8)'),
       ('4','16-20 (D10)'),
