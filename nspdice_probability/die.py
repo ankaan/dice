@@ -2,7 +2,6 @@
 Combine dice and compute probabilities for the composite die, also allow rolling of such dice.
 """
 from itertools import *
-import operator
 import random
 import re
 
@@ -28,14 +27,14 @@ class Die(object):
 
     self._reach = None
 
-    if type(arg) is Die:
+    if isinstance(arg,Die):
       self._sides = arg._sides
       self._reach = arg._reach
-    if type(arg) is list:
+    elif type(arg) is list:
       if len(arg)==0:
         self._sides = [1.0]
-      elif type(arg[0]) is Die:
-        die = reduce(operator.add, arg, Die.const(0))
+      elif isinstance(arg[0],Die):
+        die = sum(arg[1:], arg[0])
         self._sides = die._sides
         self._reach = die._reach
       else:
@@ -59,7 +58,7 @@ class Die(object):
       else:
         raise ValueError('A die cannot have negative number of sides.')
     else:
-      raise TypeError('Die.__init() either takes a list or an integer.')
+      raise TypeError('Die.__init__() either takes a die, a list or an integer.')
 
   @classmethod
   def const(self,value):
@@ -76,7 +75,7 @@ class Die(object):
     Create a new composite die by adding two dice together.
     """
 
-    if type(other) is not Die:
+    if not isinstance(other,Die):
       raise TypeError('Only a die can be added to another die.')
 
     sides = [0.0]*( self.max_side() + other.max_side() + 1 )
@@ -89,7 +88,12 @@ class Die(object):
 
     return Die(sides)
 
+  def duplicate(self,num):
+    """Duplicate the die the given number of times."""
+    return Die([self]*num)
+
   def max_side(self):
+    """Get the biggest possible outcome."""
     return len(self._sides) - 1
 
   def __eq__(self,other):
@@ -104,10 +108,6 @@ class Die(object):
     """
     return all([ round(x-y,ndigits)==0.0 for (x,y) in
         map(None,self._sides,other._sides) ])
-
-  def duplicate(self,num):
-    """Duplicate the die the given number of times."""
-    return Die([self]*num)
 
   def probability(self):
     """Get the probabilities for rolling the positional number."""
@@ -276,9 +276,18 @@ class LazyDie(object):
   """A lazy implementation of a die."""
 
   @inheritdoc(Die)
-  def __init__(self,sides=None):
-    self._dice = [ Die(sides) ]
-    pass
+  def __init__(self,arg=0):
+    if type(arg) is list and len(arg)>0 and isinstance(arg[0],(Die,LazyDie)):
+      if all(isinstance(a,Die) for a in arg):
+        self._dice = arg[:]
+      elif all(isinstance(a,LazyDie) for a in arg):
+        self._dice = sum(arg[1:], arg[0])._dice
+      else:
+        raise ValueError("Invalid side definition.")
+    elif isinstance(arg,LazyDie):
+      self._dice = arg._dice[:]
+    else:
+      self._dice = [ Die(arg) ]
 
   @classmethod
   @inheritdoc(Die)
@@ -287,4 +296,62 @@ class LazyDie(object):
 
   @inheritdoc(Die)
   def __add__(self,other):
-    dice = self._dice + other._dice
+    return LazyDie(self._dice + other._dice)
+
+  @inheritdoc(Die)
+  def duplicate(self,num):
+    return LazyDie(self._dice*num)
+
+  @inheritdoc(Die)
+  def max_side(self):
+    return sum(d.max_side() for d in self._dice)
+
+  def collapse(self):
+    """Collapse the lazy die into a single die. Do all the heavy computation."""
+    dieq = DieQueue(self._dice)
+
+    die = dieq.pop()
+    while dieq.entries()>0:
+      die = dieq.pushpop(die)
+      die += dieq.pop()
+
+    self._dice = [die]
+      
+  @inheritdoc(Die)
+  def __eq__(self,other):
+    self.collapse()
+    other.collapse()
+    return self._dice[0] == other._dice[0]
+
+  @inheritdoc(Die)
+  def similar_to(self,other,*args,**kwargs):
+    self.collapse()
+    other.collapse()
+    return self._dice[0].similar_to(other._dice[0],*args,**kwargs)
+
+  @inheritdoc(Die)
+  def probability(self,*args,**kwargs):
+    self.collapse()
+    return self._dice[0].probability(*args,**kwargs)
+
+  @inheritdoc(Die)
+  def probability_reach(self,*args,**kwargs):
+    self.collapse()
+    return self._dice[0].probability_reach(*args,**kwargs)
+
+  @inheritdoc(Die)
+  def probability_vs(self,other,*args,**kwargs):
+    self.collapse()
+    other.collapse()
+    return self._dice[0].probability_vs(other,*args,**kwargs)
+
+  @inheritdoc(Die)
+  def probability_eq(self,other,*args,**kwargs):
+    self.collapse()
+    other.collapse()
+    return self._dice[0].probability_eq(other,*args,**kwargs)
+
+  @inheritdoc(Die)
+  def roll(self,*args,**kwargs):
+    self.collapse()
+    return self._dice[0].roll(*args,**kwargs)

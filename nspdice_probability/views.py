@@ -2,12 +2,12 @@ from django import forms
 from django.http import HttpResponse
 from django.shortcuts import render
 
-from nspdice_probability.die import Die, DieParseException, from_string
+from nspdice_probability.die import LazyDie as Die
+from nspdice_probability.die import DieParseException, from_string
 from nspdice_probability.formmanager import manager_factory
 
 import string
 import urllib
-import operator
 
 from matplotlib import use as matplot_use
 matplot_use('cairo')
