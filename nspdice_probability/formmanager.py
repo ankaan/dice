@@ -84,7 +84,7 @@ def manager_factory(form, manager=BaseFormManager, extra=1, max_forms=None):
   Return a manager for the given form.
   
   Arguments:
-    form:       The form tho create a manager for.
+    form:       The form to create a manager for.
     manager:    What form manager to create.
     extra:      Number of extra initial forms.
     max_forms:  Maximum number of forms allowed. None for infinite, the default.

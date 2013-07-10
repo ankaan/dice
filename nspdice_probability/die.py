@@ -6,6 +6,9 @@ import operator
 import random
 import re
 
+from nspdice_probability.queue import AbstractQueue
+from nspdice_probability.doc import docfrom, inheritdoc
+
 class DieParseException(Exception):
   """
   Raised if it was not possible to create a composite die from the string
@@ -18,11 +21,16 @@ class Die(object):
 
   def __init__(self,sides):
     """
-    Create a die based on a liste of probabilities where the index is the outcome or a fair die with the given number of sides.
+    Create a die based on a liste of probabilities where the index is the
+    outcome or a fair die with the given number of sides. It is also possible
+    to supply another die to create a duplicate of.
     """
 
     self._reach = None
 
+    if type(sides) is Die:
+      self._sides = sides._sides
+      self._reach = sides._reach
     if type(sides) is list:
       if len(sides)==0:
         raise ValueError('Invalid probabilities.')
@@ -57,84 +65,6 @@ class Die(object):
 
     return self([0.0]*value + [1.0])
 
-  _re_const = re.compile('^(\d+)$')
-  _re_single = re.compile('^[dD](\d+)$')
-  _re_multi = re.compile('^(\d+)[dD](\d+)$')
-  _re_seq = re.compile('^[dD](\d+)-[dD](\d+)$')
-
-  _die_seq = [4,6,8,10,12,20]
-
-  @classmethod
-  def from_string(self,raw,max_sides=None,max_dice=None):
-    """
-    Create the composite die described in the string.
-
-    Arguments:
-      raw:        The input string that describes the die.
-      max_sides:  Maximum number of sides a die may have in the input.
-                  None for infinite, the default.
-      max_dice:   Maximum number of dice described in the input.
-                  None for infinite, the default.
-    """
-    rawdice = raw.split()
-    if len(rawdice) == 0:
-      return None
-
-    countdice = DiceCounter(max_dice).count
-    readsides = SideReader(max_sides).read
-    
-    # Place-holder die that always rolls a sum of 0
-    die = Die.const(0)
-
-    # For each proposed die
-    for rd in rawdice:
-      # Check for constants
-      m = self._re_const.match(rd)
-      if m:
-        die += Die.const(readsides(m.group(1)))
-        continue
-      
-      # Check for single die
-      m = self._re_single.match(rd)
-      if m:
-        countdice(1)
-        die += Die(readsides(m.group(1)))
-        continue
-      
-      # Check for multiple copies of same die
-      m = self._re_multi.match(rd)
-      if m:
-        copies = int(m.group(1))
-        sides = readsides(m.group(2))
-
-        countdice(copies)
-
-        die += Die(sides).duplicate(copies)
-        continue
-      
-      # Check for die sequences
-      m = self._re_seq.match(rd)
-      if m:
-        try:
-          start = self._die_seq.index( int(m.group(1)) )
-          stop = self._die_seq.index( int(m.group(2)) )
-          if start>stop:
-            raise ValueError()
-        except ValueError:
-          raise DieParseException("Invalid die sequence: %s"%rd)
-
-        countdice(stop+1-start)
-
-        dice = [ Die(n) for n in self._die_seq[start:stop+1] ]
-        die += reduce(operator.add, dice, Die.const(0))
-
-        continue
-
-      # None of the above matched; the die is invalid.
-      raise DieParseException("Invalid die: %s"%rd)
-      
-    return die
-
   def __add__(self,other):
     """
     Create a new composite die by adding two dice together.
@@ -143,7 +73,7 @@ class Die(object):
     if type(other) is not Die:
       raise TypeError('Only a die can be added to another die.')
 
-    sides = [0.0]*( len(self._sides) + len(other._sides) - 1 )
+    sides = [0.0]*( self.max_side() + other.max_side() + 1 )
 
     outcomes = ( (sv+ov,sp*op) for (sv,sp) in enumerate(self._sides)
                                for (ov,op) in enumerate(other._sides) )
@@ -152,6 +82,9 @@ class Die(object):
       sides[v] += p
 
     return Die(sides)
+
+  def max_side(self):
+    return len(self._sides) - 1
 
   def __eq__(self,other):
     """
@@ -250,3 +183,101 @@ class SideReader(object):
     if self._max_sides != None and sides > self._max_sides:
       raise DieParseException("Max %d sides for a die"%self._max_sides)
     return sides
+
+_RE_CONST = re.compile('^(\d+)$')
+_RE_SINGLE = re.compile('^[dD](\d+)$')
+_RE_MULTI = re.compile('^(\d+)[dD](\d+)$')
+_RE_SEQ = re.compile('^[dD](\d+)-[dD](\d+)$')
+
+_DIE_SEQ = [4,6,8,10,12,20]
+
+def from_string(makedie,raw,max_sides=None,max_dice=None):
+  """
+  Create the composite die described in the string.
+
+  Arguments:
+    makedie:    The class of die to create.
+    raw:        The input string that describes the die.
+    max_sides:  Maximum number of sides a die may have in the input.
+                None for infinite, the default.
+    max_dice:   Maximum number of dice described in the input.
+                None for infinite, the default.
+  """
+  rawdice = raw.split()
+  if len(rawdice) == 0:
+    return None
+
+  countdice = DiceCounter(max_dice).count
+  readsides = SideReader(max_sides).read
+  
+  # Place-holder die that always rolls a sum of 0
+  die = makedie.const(0)
+
+  # For each proposed die
+  for rd in rawdice:
+    # Check for constants
+    m = _RE_CONST.match(rd)
+    if m:
+      die += makedie.const(readsides(m.group(1)))
+      continue
+    
+    # Check for single die
+    m = _RE_SINGLE.match(rd)
+    if m:
+      countdice(1)
+      die += makedie(readsides(m.group(1)))
+      continue
+    
+    # Check for multiple copies of same die
+    m = _RE_MULTI.match(rd)
+    if m:
+      copies = int(m.group(1))
+      sides = readsides(m.group(2))
+
+      countdice(copies)
+
+      die += makedie(sides).duplicate(copies)
+      continue
+    
+    # Check for die sequences
+    m = _RE_SEQ.match(rd)
+    if m:
+      try:
+        start = _DIE_SEQ.index( int(m.group(1)) )
+        stop = _DIE_SEQ.index( int(m.group(2)) )
+        if start>stop:
+          raise ValueError()
+      except ValueError:
+        raise DieParseException("Invalid die sequence: %s"%rd)
+
+      countdice(stop+1-start)
+
+      dice = [ makedie(n) for n in _DIE_SEQ[start:stop+1] ]
+      die += reduce(operator.add, dice, Die.const(0))
+
+      continue
+
+    # None of the above matched; the die is invalid.
+    raise DieParseException("Invalid die: %s"%rd)
+    
+  return die
+
+
+class DieQueue(AbstractQueue):
+  def priority(self,obj):
+    return obj.max_side()
+
+class LazyDie(object):
+  """A lazy implementation of a die."""
+
+  @inheritdoc(Die)
+  def __init__(self,*args,**kwargs):
+    # Do not use queue until merging.
+    #self._dieq = DieQueue()
+    #self._dieq.push(Die(*args,**kwargs))
+    pass
+
+  @classmethod
+  @inheritdoc(Die)
+  def const(self,*args,**kwargs):
+    return LazyDie(Die.const(*args,**kwargs))

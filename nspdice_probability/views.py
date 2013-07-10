@@ -2,7 +2,7 @@ from django import forms
 from django.http import HttpResponse
 from django.shortcuts import render
 
-from nspdice_probability.die import Die, DieParseException
+from nspdice_probability.die import Die, DieParseException, from_string
 from nspdice_probability.formmanager import manager_factory
 
 import string
@@ -160,7 +160,7 @@ class CustomDieForm(forms.Form):
     self.rawdice = raw.split()
 
     try:
-      return Die.from_string(raw, max_sides=30, max_dice=15)
+      return from_string(Die, raw, max_sides=30, max_dice=15)
     except DieParseException as e:
       raise forms.ValidationError(*e.args)
 
@@ -179,10 +179,10 @@ def probability_reference(request):
 def probability_reference_plot(request):
   return _probability_reference(request, stage='plot')
 
-def _probability_reference(request, stage):
-  ColumnFormManager = manager_factory(ColumnForm,max_forms=60)
-  CustomDieFormManager = manager_factory(CustomDieForm,max_forms=10)
+ColumnFormManager = manager_factory(ColumnForm,max_forms=60)
+CustomDieFormManager = manager_factory(CustomDieForm,max_forms=10)
 
+def _probability_reference(request, stage):
   mode = 'target'
   if "mode" in request.GET:
     modeform = ModeForm(request.GET)
