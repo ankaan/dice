@@ -19,39 +19,45 @@ class DieParseException(Exception):
 class Die(object):
   """A generalized die."""
 
-  def __init__(self,sides):
+  def __init__(self,arg):
     """
     Create a die based on a liste of probabilities where the index is the
     outcome or a fair die with the given number of sides. It is also possible
-    to supply another die to create a duplicate of.
+    to supply another die to create a duplicate of or a list of dice to sum.
     """
 
     self._reach = None
 
-    if type(sides) is Die:
-      self._sides = sides._sides
-      self._reach = sides._reach
-    if type(sides) is list:
-      if len(sides)==0:
-        raise ValueError('Invalid probabilities.')
+    if type(arg) is Die:
+      self._sides = arg._sides
+      self._reach = arg._reach
+    if type(arg) is list:
+      if len(arg)==0:
+        self._sides = [1.0]
+      elif type(arg[0]) is Die:
+        die = reduce(operator.add, arg, Die.const(0))
+        self._sides = die._sides
+        self._reach = die._reach
       else:
-        total_probability = float(sum(sides))
+        total_probability = float(sum(arg))
 
-        if total_probability == 0.0 or any(float(s)<0.0 for s in sides):
+        if total_probability == 0.0 or any(float(s)<0.0 for s in arg):
           raise ValueError('Invalid probabilities.')
 
-        self._sides = [ float(s)/total_probability for s in sides ]
+        self._sides = [ float(s)/total_probability for s in arg ]
 
         for (i,s) in enumerate(reversed(self._sides),1):
           if s>0.0:
             break
           else:
             del self._sides[-i]
-    elif type(sides) is int:
-      if sides>=0:
-        self._sides = [0.0] + [1.0/sides]*sides
+    elif type(arg) is int:
+      if arg>0:
+        self._sides = [0.0] + [1.0/arg]*arg
+      elif arg==0:
+        self._sides = [1.0]
       else:
-        raise ValueError('If sides in an integer, it must be greater than 0')
+        raise ValueError('A die cannot have negative number of sides.')
     else:
       raise TypeError('Die.__init() either takes a list or an integer.')
 
@@ -101,7 +107,7 @@ class Die(object):
 
   def duplicate(self,num):
     """Duplicate the die the given number of times."""
-    return reduce(operator.add, [self]*num, Die.const(0))
+    return Die([self]*num)
 
   def probability(self):
     """Get the probabilities for rolling the positional number."""
@@ -252,8 +258,7 @@ def from_string(makedie,raw,max_sides=None,max_dice=None):
 
       countdice(stop+1-start)
 
-      dice = [ makedie(n) for n in _DIE_SEQ[start:stop+1] ]
-      die += reduce(operator.add, dice, Die.const(0))
+      die += makedie([ makedie(n) for n in _DIE_SEQ[start:stop+1] ])
 
       continue
 
@@ -271,13 +276,15 @@ class LazyDie(object):
   """A lazy implementation of a die."""
 
   @inheritdoc(Die)
-  def __init__(self,*args,**kwargs):
-    # Do not use queue until merging.
-    #self._dieq = DieQueue()
-    #self._dieq.push(Die(*args,**kwargs))
+  def __init__(self,sides=None):
+    self._dice = [ Die(sides) ]
     pass
 
   @classmethod
   @inheritdoc(Die)
   def const(self,*args,**kwargs):
     return LazyDie(Die.const(*args,**kwargs))
+
+  @inheritdoc(Die)
+  def __add__(self,other):
+    dice = self._dice + other._dice

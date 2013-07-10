@@ -6,10 +6,11 @@ import operator
 class TestDie(TestCase):
 
   def test_init(self):
-    self.assertRaises(ZeroDivisionError,Die,0)
+    self.assertEquals(Die(0).probability(),[1.0])
 
     self.assertEquals(Die(4).probability(),[0.0, 0.25, 0.25, 0.25, 0.25])
 
+    self.assertEquals(Die([]).probability(),[1.0])
     self.assertEquals(Die([0,0.5,0.5,0])._sides,[0,0.5,0.5])
     self.assertEquals(Die([0,0.5,0.5,0]),Die([0,0.5,0.5]))
     self.assertEquals(Die([0,1,1,1,1]),Die([0,0.25,0.25,0.25,0.25]))
@@ -23,7 +24,8 @@ class TestDie(TestCase):
     self.assertRaises(TypeError,Die,(1,2,3))
     self.assertRaises(TypeError,Die,Die(3))
     self.assertRaises(ValueError,Die,-1)
-    self.assertRaises(ValueError,Die,[])
+
+    self.assertEquals(Die([Die(4), Die(6)]), Die(4)+Die(6))
 
   def test_const(self):
     self.assertEquals(Die.const(0).probability(),[1.0])
