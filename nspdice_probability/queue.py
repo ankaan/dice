@@ -2,9 +2,12 @@ from heapq import heappop, heappush, heappushpop, heapreplace, heapify
 import itertools
 
 class AbstractQueue(object):
-  def __init__(self,data=[]):
+  def __init__(self,data=None):
     self._counter = itertools.count()
-    self._pq = [ self._entry(d) for d in data ]
+    if data:
+      self._pq = [ self._entry(d) for d in data ]
+    else:
+      self._pq = []
     heapify(self._pq)
 
   def __eq__(self,other):

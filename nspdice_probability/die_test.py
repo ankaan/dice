@@ -1,4 +1,5 @@
-from nspdice_probability.die import Die, LazyDie, DieParseException, from_string
+from nspdice_probability.die import Die, LazyDie
+from nspdice_probability.die import DieParseException, from_string, fastsum
 from django.test import TestCase
 
 class TestDie(TestCase):
@@ -26,6 +27,8 @@ class TestDie(TestCase):
 
       self.assertEquals(d([d(4), d(6)]), d(4)+d(6))
 
+    self.assertEquals(LazyDie([Die(4), Die(6)]), LazyDie(4)+LazyDie(6))
+
   def test_const(self):
     for d in (Die,LazyDie):
       self.assertEquals(d.const(0).probability(),[1.0])
@@ -36,6 +39,10 @@ class TestDie(TestCase):
     for d in (Die,LazyDie):
       die = d(2)+d(2)
       self.assertEquals(die.probability(),[0.0, 0.0, 0.25, 0.5, 0.25])
+      die = d(2)+d(4)
+      self.assertEquals(
+          die.probability(),
+          [0.0, 0.0, 1./2/4, 1./4, 1./4, 1./4, 1./2/4])
 
       left  = (d(2) + d(10)) + d(20)
       right = d(2) + (d(10) + d(20))
@@ -172,3 +179,7 @@ class TestDie(TestCase):
       self.assertRaises(DieParseException,
           from_string, d, "2d11", max_dice=5, max_sides=10)
 
+  def test_from_string(self):
+    self.assertEquals(fastsum([Die(10)]), Die(10))
+    self.assertEquals(fastsum([Die(4),Die(6)]), Die(4)+Die(6))
+    self.assertEquals(fastsum([Die(6),Die(4)]), Die(4)+Die(6))

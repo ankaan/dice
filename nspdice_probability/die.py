@@ -1,7 +1,6 @@
 """
 Combine dice and compute probabilities for the composite die, also allow rolling of such dice.
 """
-from itertools import *
 import random
 import re
 
@@ -26,6 +25,7 @@ class Die(object):
     """
 
     self._reach = None
+    self._cmp = None
 
     if isinstance(arg,Die):
       self._sides = arg._sides
@@ -90,7 +90,48 @@ class Die(object):
 
   def duplicate(self,num):
     """Duplicate the die the given number of times."""
-    return Die([self]*num)
+    if type(num)!=int or num<0:
+      raise TypeError(
+        "Number of times to duplicate must be a non-negative int.")
+
+    if num == 0:
+      return Die.const(0)
+
+    # Find all powers of 2 less than or equal to num
+    pow2 = [1]
+    while pow2[-1] <= num:
+      pow2.append(pow2[-1]*2)
+    pow2.pop()
+
+    # Cache has space for all such powers of 2
+    cache = [None]*len(pow2)
+
+    # Populate cache
+    cache[0] = self
+    die = self
+    for i in xrange(1,len(pow2)):
+      die += die
+      cache[i] = die
+    # Cache now contains: cache[i] = self.duplicate(2**i)
+
+    req = [None]*len(pow2)
+    rest = num
+    for i, p in enumerate(reversed(pow2),1):
+      if p <= rest:
+        req[-i] = cache[-i]
+        rest -= p
+
+    return fastsum(d for d in req if d is not None)
+
+  def _duplicate(self,num,cache):
+    """Duplicate the die the given number of times."""
+    try:
+      return cache[num]
+    except KeyError:
+      die = cache[num/2]
+      die += die
+      if num%2 != 0:
+        die += cache[num%2]
 
   def max_side(self):
     """Get the biggest possible outcome."""
@@ -116,7 +157,7 @@ class Die(object):
 
   def similar_to(self,other,ndigits=12):
     """
-    Check if two dice are similar enough. Workaround for inexact float results.
+    Check if two dice are similar enough Workaround for inexact float results.
     """
     for (x,y) in map(None,self._sides, other._sides):
       if x!=y:
@@ -284,11 +325,6 @@ def from_string(makedie,raw,max_sides=None,max_dice=None):
     
   return die
 
-
-class DieQueue(AbstractQueue):
-  def priority(self,obj):
-    return obj.max_side()
-
 class LazyDie(object):
   """A lazy implementation of a die."""
 
@@ -296,15 +332,20 @@ class LazyDie(object):
   def __init__(self,arg=0):
     if type(arg) is list and len(arg)>0 and isinstance(arg[0],(Die,LazyDie)):
       if all(isinstance(a,Die) for a in arg):
-        self._dice = arg[:]
+        self._dice = [ (a,1) for a in arg ]
       elif all(isinstance(a,LazyDie) for a in arg):
         self._dice = sum(arg[1:], arg[0])._dice
+      else:
+        raise ValueError("Invalid side definition.")
+    elif type(arg) is list and len(arg)>0 and type(arg[0]) is tuple:
+      if all(type(a) is tuple and isinstance(a[0],Die) for a in arg):
+        self._dice = arg
       else:
         raise ValueError("Invalid side definition.")
     elif isinstance(arg,LazyDie):
       self._dice = arg._dice[:]
     else:
-      self._dice = [ Die(arg) ]
+      self._dice = [ (Die(arg),1) ]
 
   @classmethod
   @inheritdoc(Die)
@@ -317,60 +358,76 @@ class LazyDie(object):
 
   @inheritdoc(Die)
   def duplicate(self,num):
-    return LazyDie(self._dice*num)
+    return LazyDie([ (d,n*num) for (d,n) in self._dice if n*num>0 ])
 
   @inheritdoc(Die)
   def max_side(self):
-    return sum(d.max_side() for d in self._dice)
+    return sum(d.max_side() for (d,n) in self._dice)
 
   def collapse(self):
     """Collapse the lazy die into a single die. Do all the heavy computation."""
-    dieq = DieQueue(self._dice)
+    if len(self._dice)>1 or self._dice[0][1]>1:
+      self._dice.sort(reverse=True)
 
-    die = dieq.pop()
-    while dieq.entries()>0:
-      die = dieq.pushpop(die)
-      die += dieq.pop()
+      dice = []
+      while len(self._dice)>0:
+        (d,n) = self._dice.pop()
+        while len(self._dice)>0 and self._dice[-1][0]==d:
+          n += self._dice.pop()[1]
+        dice.append(d.duplicate(n))
 
-    self._dice = [die]
+      self._dice = [(fastsum(dice),1)]
+
+  def collapsed(self):
+    """Get the collapsed die, all lazily described dice combined into one."""
+    self.collapse()
+    return self._dice[0][0]
       
   @inheritdoc(Die)
   def __cmp__(self,other):
-    self.collapse()
     if other is None:
       return 1
-    other.collapse()
-    return self._dice[0].__cmp__(other._dice[0])
+    return self.collapsed().__cmp__(other.collapsed())
 
   @inheritdoc(Die)
   def similar_to(self,other,*args,**kwargs):
-    self.collapse()
-    other.collapse()
-    return self._dice[0].similar_to(other._dice[0],*args,**kwargs)
+    return self.collapsed().similar_to(other.collapsed(),*args,**kwargs)
 
   @inheritdoc(Die)
   def probability(self,*args,**kwargs):
-    self.collapse()
-    return self._dice[0].probability(*args,**kwargs)
+    return self.collapsed().probability(*args,**kwargs)
 
   @inheritdoc(Die)
   def probability_reach(self,*args,**kwargs):
-    self.collapse()
-    return self._dice[0].probability_reach(*args,**kwargs)
+    return self.collapsed().probability_reach(*args,**kwargs)
 
   @inheritdoc(Die)
   def probability_vs(self,other,*args,**kwargs):
-    self.collapse()
-    other.collapse()
-    return self._dice[0].probability_vs(other,*args,**kwargs)
+    return self.collapsed().probability_vs(other.collapsed(),*args,**kwargs)
 
   @inheritdoc(Die)
   def probability_eq(self,other,*args,**kwargs):
-    self.collapse()
-    other.collapse()
-    return self._dice[0].probability_eq(other,*args,**kwargs)
+    return self.collapsed().probability_eq(other.collapsed(),*args,**kwargs)
 
   @inheritdoc(Die)
   def roll(self,*args,**kwargs):
-    self.collapse()
-    return self._dice[0].roll(*args,**kwargs)
+    return self.collapsed().roll(*args,**kwargs)
+
+class DieQueue(AbstractQueue):
+  def priority(self,obj):
+    return obj.max_side()
+
+def fastsum(dice):
+  """
+  Sums upp all dice in dice (must be at least length 1). Addition is done in
+  the order such that at each step the two candidates with smallest maximum
+  sides are summed up and returned to the pool of items to sum.
+  """
+  dieq = DieQueue(dice)
+
+  die = dieq.pop()
+  while dieq.entries()>0:
+    die = dieq.pushpop(die)
+    die += dieq.pop()
+
+  return die

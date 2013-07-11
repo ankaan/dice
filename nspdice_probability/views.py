@@ -287,6 +287,9 @@ def prob_plot(request,dice,columnmanager,customdiemanager,target=False):
       result = d.probability_reach()+[0.0]
     else:
       result = d.probability()+[0.0]
+
+    result = [ max(r,0) for r in result ]
+
     ymax = max(ymax,max(result))
 
     label = string.strip("%s\n%s" % (
