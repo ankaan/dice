@@ -102,12 +102,29 @@ class Die(object):
     """
     return self.similar_to(other)
 
+  def __cmp__(self,other):
+    """
+    Compare two dice. Will consider two dice that differ less than 1e-12 to be
+    equal.
+    """
+    if other is None:
+      return 1
+    elif self.similar_to(other):
+      return 0
+    else:
+      return cmp(self._sides,other._sides)
+
   def similar_to(self,other,ndigits=12):
     """
     Check if two dice are similar enough. Workaround for inexact float results.
     """
-    return all([ round(x-y,ndigits)==0.0 for (x,y) in
-        map(None,self._sides,other._sides) ])
+    for (x,y) in map(None,self._sides, other._sides):
+      if x!=y:
+        if x is None or y is None:
+          return False
+        elif round(x-y,ndigits)!=0.0:
+          return False
+    return True
 
   def probability(self):
     """Get the probabilities for rolling the positional number."""
@@ -318,10 +335,12 @@ class LazyDie(object):
     self._dice = [die]
       
   @inheritdoc(Die)
-  def __eq__(self,other):
+  def __cmp__(self,other):
     self.collapse()
+    if other is None:
+      return 1
     other.collapse()
-    return self._dice[0] == other._dice[0]
+    return self._dice[0].__cmp__(other._dice[0])
 
   @inheritdoc(Die)
   def similar_to(self,other,*args,**kwargs):

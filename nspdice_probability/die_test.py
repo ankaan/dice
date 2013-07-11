@@ -58,8 +58,22 @@ class TestDie(TestCase):
       self.assertEqual(d(2),d(2))
       self.assertEqual(d(2),d([0,0.5,0.5]))
       self.assertNotEqual(d(2),d(4))
+      self.assertNotEqual(d(4),d(2))
       self.assertEqual(d([0.0,1,1]),d([0,0.5,0.5]))
       self.assertEqual(d([0.0,1,1])+d(10),d([0,0.5,0.5])+d(10))
+
+  def test_cmp(self):
+    for d in (Die,LazyDie):
+      self.assertEqual(d(2).__cmp__(None),cmp(1,None))
+      self.assertEqual(d(2).__cmp__(d(2)),0)
+      self.assertEqual(d(2).__cmp__(d([0,0.5,0.5])),0)
+      self.assertEqual(d(2).__cmp__(d(4)),1)
+      self.assertEqual(d(4).__cmp__(d(2)),-1)
+      self.assertEqual(d([0.0,1,1]).__cmp__(d([0,0.5,0.5])),0)
+      self.assertEqual((d([0.0,1,1])+d(10)).__cmp__(d([0,0.5,0.5])+d(10)),0)
+
+      self.assertEqual(d(2),d(2))
+      self.assertNotEqual(d(4),d(2))
 
   def test_duplicate(self):
     for d in (Die,LazyDie):
