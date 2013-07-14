@@ -1,11 +1,13 @@
 # Django settings for nspdice project.
+from os import path
+
+BASE_DIR = path.dirname(path.dirname(__file__))
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
-    ('Anders Engstrom', 'test@test.com'),
 )
 
 MANAGERS = ADMINS
@@ -13,7 +15,7 @@ MANAGERS = ADMINS
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': '/home/ankan/work/nianze/gailia/nspdice/db.sqlite',                      # Or path to database file if using sqlite3.
+        'NAME': path.join(BASE_DIR,'/db.sqlite'), # Or path to database file if using sqlite3.
         'USER': '',                      # Not used with sqlite3.
         'PASSWORD': '',                  # Not used with sqlite3.
         'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
