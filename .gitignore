@@ -1,5 +1,8 @@
 *.py[cod]
 
+# vim swap
+*.swp
+
 # C extensions
 *.so
 
@@ -36,3 +39,5 @@ nosetests.xml
 
 # sqlite database
 db.sqlite
+
+nspdice.pid

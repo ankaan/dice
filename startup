@@ -1,0 +1,70 @@
+#!/bin/bash
+PROGRAM="$0"
+COMMAND="$1"
+
+if [[ "x$USER" == "xroot" ]]; then
+  echo "Do not run as root!"
+  exit 1
+fi
+
+function usage() {
+  echo "usage: $PROGRAM {start,stop,restart}"
+}
+
+if [[ "x$1" == "x" ]]; then
+  usage
+  exit 0
+fi
+
+INSTANCE="nspdice"
+
+PROJDIR="/home/ankan/webapp/nspdice"
+SOCKET="/home/http/fastcgi/external_socket/ankan/nspdice.sock"
+PIDFILE="$PROJDIR/nspdice.pid"
+
+ALLOWED_ENV="PATH USER"
+
+function start() {
+  if [[ -e $PIDFILE ]]; then
+    echo "service $INSTANCE already started"
+  else
+    echo "starting $INSTANCE service"
+    for i in $ALLOWED_ENV; do
+      E="$E $i=$(eval echo "\$$i")" 
+    done
+
+    cd $PROJDIR
+    env - $E ./manage.py runfcgi socket=$SOCKET pidfile=$PIDFILE umask=000
+  fi
+}
+
+function stop() {
+  if [[ -e $PIDFILE ]]; then
+    echo "stopping service $INSTANCE"
+    kill $(cat $PIDFILE) &>/dev/null
+    rm $PIDFILE &>/dev/null
+  else
+    echo "service $INSTANCE already stopped"
+  fi
+}
+
+function restart() {
+  echo "restarting service $INSTANCE"
+  stop
+  start
+}
+
+case "$COMMAND" in
+  "start")
+    start
+  ;;
+  "restart")
+    restart
+  ;;
+  "stop")
+    stop
+  ;;
+  *)
+    usage
+  ;;
+esac
