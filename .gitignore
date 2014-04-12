@@ -36,3 +36,5 @@ nosetests.xml
 
 # sqlite database
 db.sqlite
+
+nspdice.pid
