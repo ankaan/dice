@@ -248,10 +248,14 @@ class SideReader(object):
       raise DieParseException("Max %d sides for a die"%self._max_sides)
     return sides
 
+_POOL_DIE = Die([7,4,1])
+
 _RE_CONST = re.compile('^(\d+)$')
 _RE_SINGLE = re.compile('^[dD](\d+)$')
 _RE_MULTI = re.compile('^(\d+)[dD](\d+)$')
 _RE_SEQ = re.compile('^[dD](\d+)-[dD](\d+)$')
+
+_RE_POOL = re.compile('^(\d*)[pP]$')
 
 _DIE_SEQ = [4,6,8,10,12,20]
 
@@ -302,7 +306,7 @@ def from_string(makedie,raw,max_sides=None,max_dice=None):
 
       die += makedie(sides).duplicate(copies)
       continue
-    
+
     # Check for die sequences
     m = _RE_SEQ.match(rd)
     if m:
@@ -318,6 +322,20 @@ def from_string(makedie,raw,max_sides=None,max_dice=None):
 
       die += makedie([ makedie(n) for n in _DIE_SEQ[start:stop+1] ])
 
+      continue
+
+    # Check for a pool die
+    m = _RE_POOL.match(rd)
+    if m:
+      try:
+        copies = int(m.group(1))
+      except ValueError:
+        copies = 1
+
+      countdice(copies)
+      readsides(3)
+
+      die += makedie(_POOL_DIE).duplicate(copies)
       continue
 
     # None of the above matched; the die is invalid.
@@ -344,6 +362,8 @@ class LazyDie(object):
         raise ValueError("Invalid side definition.")
     elif isinstance(arg,LazyDie):
       self._dice = arg._dice[:]
+    elif isinstance(arg,Die):
+      self._dice = [ (arg,1) ]
     else:
       self._dice = [ (Die(arg),1) ]
 
