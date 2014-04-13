@@ -138,9 +138,6 @@ class ColumnForm(forms.Form):
                 self.cleaned_data['skill'] != 'del',
                 self.cleaned_data['attribute'] != 'del'])
 
-  def details(self):
-    return "%s\n%s"%(self.get_skill_display(),self.get_attribute_display())
-
 class CustomDieForm(forms.Form):
   die = forms.CharField(required=False)
 
@@ -148,12 +145,7 @@ class CustomDieForm(forms.Form):
     super(CustomDieForm, self).__init__(*args,**kwargs)
 
     self.num = None
-
-  def get_skill_display(self):
-    return "Custom %d" % self.num
-
-  def get_attribute_display(self):
-    return ""
+    self.rawdice = [""]
 
   def clean_die(self):
     raw = self.cleaned_data['die']
@@ -169,9 +161,6 @@ class CustomDieForm(forms.Form):
       return True
     else:
       return self.cleaned_data['die'] != None
-
-  def details(self):
-    return "Custom %d:\n%s"%(self.num,string.join(self.rawdice))
 
 def probability_reference(request):
   return _probability_reference(request, stage='html')
@@ -200,9 +189,10 @@ def _probability_reference(request, stage):
   if mode == 'target':
     dice = build_dice(columnmanager,customdiemanager)
     # Compute probability for each die.
-    result = transpose([ d.probability_reach() for d in dice ])
+    result = transpose([ d.die.probability_reach() for d in dice ])
 
     return render(request, 'target.html', {
+      'dice': dice,
       'modeform': modeform,
       'columnmanager': columnmanager,
       'customdiemanager': customdiemanager,
@@ -211,9 +201,10 @@ def _probability_reference(request, stage):
 
   elif mode == 'vs':
     dice = build_dice(columnmanager,customdiemanager)
-    result = [ [ a.probability_vs(b) for a in dice ] for b in dice ]
+    result = [ [ a.die.probability_vs(b.die) for a in dice ] for b in dice ]
 
     return render(request, 'versus.html', {
+      'dice': dice,
       'modeform': modeform,
       'columnmanager': columnmanager,
       'customdiemanager': customdiemanager,
@@ -222,7 +213,7 @@ def _probability_reference(request, stage):
   elif mode == 'plot_target':
     if stage=='plot':
       dice = build_dice(columnmanager,customdiemanager)
-      return prob_plot(request,dice,columnmanager,customdiemanager,target=True)
+      return prob_plot(request,dice,target=True)
     else:
       getvars = urllib.urlencode(request.GET)
 
@@ -235,7 +226,7 @@ def _probability_reference(request, stage):
   elif mode == 'plot_prob':
     if stage=='plot':
       dice = build_dice(columnmanager,customdiemanager)
-      return prob_plot(request,dice,columnmanager,customdiemanager,target=False)
+      return prob_plot(request,dice,target=False)
     else:
       getvars = urllib.urlencode(request.GET)
 
@@ -252,16 +243,35 @@ def _probability_reference(request, stage):
       'customdiemanager': customdiemanager,
     })
 
+class DieInfo(object):
+  def __init__(self,die,pri,sec,details):
+    self.die = die
+    self.pri = pri
+    self.sec = sec
+    self.details = details
+
 def build_dice(columnmanager,customdiemanager):
+  dice = []
   if columnmanager.is_valid() and customdiemanager.is_valid():
     # Create the corresponding die for each form.
-    dice = [
-      SKILL_DIE[d['skill']] + PRO_DIE[d['attribute']]
-      for d in columnmanager.cleaned_data()
+    dice += [
+      DieInfo(
+        SKILL_DIE[f.cleaned_data['skill']] + PRO_DIE[f.cleaned_data['attribute']],
+        f.get_skill_display(),
+        f.get_attribute_display(),
+        "%s\n%s"%(f.get_skill_display(),f.get_attribute_display())
+      )
+      for f in columnmanager.base_forms()
     ]
-    dice += [ d['die'] for d in customdiemanager.cleaned_data() ]
-  else:
-    dice = []
+    dice += [
+      DieInfo(
+        f.cleaned_data['die'],
+        "Custom %d" % f.num,
+        "",
+        "Custom %d:\n%s"%(f.num,string.join(f.rawdice))
+      )
+      for f in customdiemanager.base_forms()
+    ]
 
   return dice
 
@@ -274,27 +284,25 @@ def transpose(data):
     return map(None,*data)
 
 
-def prob_plot(request,dice,columnmanager,customdiemanager,target=False):
+def prob_plot(request,dice,target=False):
   fig = Figure(figsize=(12, 6),frameon=False)
   ax = Axes(fig,[0.07, 0.07, 0.71, 0.91])
   fig.add_axes(ax)
 
-  base_forms = columnmanager.base_forms() + customdiemanager.base_forms()
-
   ymax = 0
-  for (d,f) in zip(dice,base_forms):
+  for d in dice:
     if target:
-      result = d.probability_reach()+[0.0]
+      result = d.die.probability_reach()+[0.0]
     else:
-      result = d.probability()+[0.0]
+      result = d.die.probability()+[0.0]
 
     result = [ max(r,0) for r in result ]
 
     ymax = max(ymax,max(result))
 
     label = string.strip("%s\n%s" % (
-      f.get_skill_display(),
-      f.get_attribute_display(),
+      d.pri,
+      d.sec,
     ))
     ax.plot(result,'-o',label=label)
   
