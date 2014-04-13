@@ -34,6 +34,10 @@
         <div>
           {{ poolform.dice_pools }}
         </div>
+        <div>
+          {{ poolform.non_field_errors }}
+          {{ poolform.dice_pools.errors }}
+        </div>
       </div>
 
       {% for form in customdiemanager.forms %}
