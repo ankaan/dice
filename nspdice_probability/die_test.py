@@ -1,5 +1,5 @@
 from nspdice_probability.die import Die, LazyDie
-from nspdice_probability.die import DieParseException, from_string, fastsum
+from nspdice_probability.die import DieParseException, from_string, pool_from_string, fastsum
 from django.test import TestCase
 
 class TestDie(TestCase):
@@ -179,7 +179,28 @@ class TestDie(TestCase):
       self.assertRaises(DieParseException,
           from_string, d, "2d11", max_dice=5, max_sides=10)
 
-  def test_from_string(self):
+      pool = d([7,4,1])
+      self.assertEquals(from_string(d,"3p p"),pool.duplicate(3) + pool)
+      self.assertEquals(from_string(d,"3p d4"),pool.duplicate(3) + d(4))
+
+  def test_fastsum(self):
     self.assertEquals(fastsum([Die(10)]), Die(10))
     self.assertEquals(fastsum([Die(4),Die(6)]), Die(4)+Die(6))
     self.assertEquals(fastsum([Die(6),Die(4)]), Die(4)+Die(6))
+
+  def test_pool_from_string(self):
+    for d in (Die,LazyDie):
+      pool = d([7,4,1])
+      self.assertEquals(pool_from_string(d,""),[])
+      self.assertEquals(pool_from_string(d," "),[])
+      self.assertEquals(pool_from_string(d,"0"),[d([1])])
+      self.assertEquals(pool_from_string(d,"1"),[pool])
+      self.assertEquals(pool_from_string(d,"5"),[pool.duplicate(5)])
+      self.assertEquals(pool_from_string(d,"3 4"),[pool.duplicate(3), pool.duplicate(4)])
+
+      self.assertEquals(pool_from_string(d,"5",max_dice=5),[pool.duplicate(5)])
+
+      self.assertRaises(DieParseException, pool_from_string, d, "-1")
+      self.assertRaises(DieParseException, pool_from_string, d, "6", max_dice=5)
+      self.assertRaises(DieParseException, pool_from_string, d, "4p")
+      self.assertRaises(DieParseException, pool_from_string, d, "p")

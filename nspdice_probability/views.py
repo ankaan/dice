@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 
 from nspdice_probability.die import LazyDie as Die
-from nspdice_probability.die import DieParseException, from_string
+from nspdice_probability.die import DieParseException, from_string, pool_from_string
 from nspdice_probability.formmanager import manager_factory
 
 import string
@@ -162,6 +162,22 @@ class CustomDieForm(forms.Form):
     else:
       return self.cleaned_data['die'] != None
 
+class PoolDieForm(forms.Form):
+  dice_pools = forms.CharField(required=False)
+
+  def __init__(self,*args,**kwargs):
+    super(PoolDieForm, self).__init__(*args,**kwargs)
+    self.rawdice = [""]
+
+  def clean_dice_pools(self):
+    raw = self.cleaned_data['dice_pools']
+    self.rawdice = raw.split()
+
+    try:
+      return pool_from_string(Die, raw, max_dice=30)
+    except DieParseException as e:
+      raise forms.ValidationError(*e.args)
+
 def probability_reference(request):
   return _probability_reference(request, stage='html')
 
@@ -186,8 +202,10 @@ def _probability_reference(request, stage):
   for i, f in enumerate(customdiemanager.base_forms(),1):
     f.num = i
 
+  poolform = PoolDieForm(request.GET)
+
   if mode == 'target':
-    dice = build_dice(columnmanager,customdiemanager)
+    dice = build_dice(columnmanager,customdiemanager,poolform)
     # Compute probability for each die.
     result = transpose([ d.die.probability_reach() for d in dice ])
 
@@ -196,11 +214,12 @@ def _probability_reference(request, stage):
       'modeform': modeform,
       'columnmanager': columnmanager,
       'customdiemanager': customdiemanager,
+      'poolform': poolform,
       'result': result,
     })
 
   elif mode == 'vs':
-    dice = build_dice(columnmanager,customdiemanager)
+    dice = build_dice(columnmanager,customdiemanager,poolform)
     result = [ [ a.die.probability_vs(b.die) for a in dice ] for b in dice ]
 
     return render(request, 'versus.html', {
@@ -208,11 +227,12 @@ def _probability_reference(request, stage):
       'modeform': modeform,
       'columnmanager': columnmanager,
       'customdiemanager': customdiemanager,
+      'poolform': poolform,
       'result': result,
     })
   elif mode == 'plot_target':
     if stage=='plot':
-      dice = build_dice(columnmanager,customdiemanager)
+      dice = build_dice(columnmanager,customdiemanager,poolform)
       return prob_plot(request,dice,target=True)
     else:
       getvars = urllib.urlencode(request.GET)
@@ -221,11 +241,12 @@ def _probability_reference(request, stage):
         'modeform': modeform,
         'columnmanager': columnmanager,
         'customdiemanager': customdiemanager,
+        'poolform': poolform,
         'getvars': getvars,
       })
   elif mode == 'plot_prob':
     if stage=='plot':
-      dice = build_dice(columnmanager,customdiemanager)
+      dice = build_dice(columnmanager,customdiemanager,poolform)
       return prob_plot(request,dice,target=False)
     else:
       getvars = urllib.urlencode(request.GET)
@@ -234,6 +255,7 @@ def _probability_reference(request, stage):
         'modeform': modeform,
         'columnmanager': columnmanager,
         'customdiemanager': customdiemanager,
+        'poolform': poolform,
         'getvars': getvars,
       })
   else:
@@ -241,6 +263,7 @@ def _probability_reference(request, stage):
       'modeform': modeform,
       'columnmanager': columnmanager,
       'customdiemanager': customdiemanager,
+      'poolform': poolform,
     })
 
 class DieInfo(object):
@@ -250,9 +273,9 @@ class DieInfo(object):
     self.sec = sec
     self.details = details
 
-def build_dice(columnmanager,customdiemanager):
+def build_dice(columnmanager,customdiemanager,poolform):
   dice = []
-  if columnmanager.is_valid() and customdiemanager.is_valid():
+  if columnmanager.is_valid() and customdiemanager.is_valid() and poolform.is_valid():
     # Create the corresponding die for each form.
     dice += [
       DieInfo(
@@ -271,6 +294,15 @@ def build_dice(columnmanager,customdiemanager):
         "Custom %d:\n%s"%(f.num,string.join(f.rawdice))
       )
       for f in customdiemanager.base_forms()
+    ]
+    dice += [
+      DieInfo(
+        d,
+        r+"p",
+        "",
+        r+"p"
+      )
+      for (d,r) in zip(poolform.cleaned_data['dice_pools'],poolform.rawdice)
     ]
 
   return dice

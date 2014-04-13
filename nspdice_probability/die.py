@@ -223,6 +223,9 @@ class DiceCounter(object):
     self._max_dice = max_dice
     self._num_dice = 0
 
+  def reset(self):
+    self._num_dice = 0
+
   def count(self,dice):
     """Register the given number of dice."""
     self._num_dice += dice
@@ -342,6 +345,36 @@ def from_string(makedie,raw,max_sides=None,max_dice=None):
     raise DieParseException("Invalid die: %s"%rd)
     
   return die
+
+def pool_from_string(makedie,raw,max_dice=None):
+  """
+  Create the list of dice pools described in the string.
+
+  Arguments:
+    makedie:    The class of die to create.
+    raw:        The input string that describes the die.
+    max_dice:   Maximum number of dice described in the input.
+                None for infinite, the default.
+  """
+  rawdice = raw.split()
+  dice = []
+
+  counter = DiceCounter(max_dice)
+
+  # For each proposed die
+  for rd in rawdice:
+    try:
+      copies = int(rd)
+      if copies<0:
+        raise ValueError()
+    except ValueError:
+      raise DieParseException("Invalid die: %s"%rd)
+
+    counter.reset()
+    dice.append(makedie(_POOL_DIE).duplicate(copies))
+    counter.count(copies)
+    
+  return dice
 
 class LazyDie(object):
   """A lazy implementation of a die."""

@@ -127,12 +127,18 @@ body {
   border: solid 1px #AA3333;
 }
 
+.config .help h1 {
+  font-size: 13px;
+  font-weight: bold;
+}
+
 .config .help ul {
   margin: 0px;
   padding-left: 25px;
   list-style-position: outside;
   list-style-type: disc;
   font-size: 13px;
+  font-weight: normal;
 }
 
 .config .ghost {
