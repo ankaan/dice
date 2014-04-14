@@ -149,10 +149,10 @@ class CustomDieForm(forms.Form):
 
   def clean_die(self):
     raw = self.cleaned_data['die']
-    self.rawdice = raw.split()
 
     try:
-      return from_string(Die, raw, max_sides=30, max_dice=15)
+      (d,self.rawdice) = from_string(Die, raw, max_sides=30, max_dice=15)
+      return d
     except DieParseException as e:
       raise forms.ValidationError(*e.args)
 
@@ -171,10 +171,10 @@ class PoolDieForm(forms.Form):
 
   def clean_dice_pools(self):
     raw = self.cleaned_data['dice_pools']
-    self.rawdice = raw.split()
 
     try:
-      return pool_from_string(Die, raw, max_dice=30)
+      (d,self.rawdice) = pool_from_string(Die, raw, max_dice=30)
+      return d
     except DieParseException as e:
       raise forms.ValidationError(*e.args)
 
@@ -288,21 +288,21 @@ def build_dice(columnmanager,customdiemanager,poolform):
     ]
     dice += [
       DieInfo(
-        f.cleaned_data['die'],
-        "Custom %d" % f.num,
-        "",
-        "Custom %d:\n%s"%(f.num,string.join(f.rawdice))
-      )
-      for f in customdiemanager.base_forms()
-    ]
-    dice += [
-      DieInfo(
         d,
         r+"p",
         "",
         r+"p"
       )
       for (d,r) in zip(poolform.cleaned_data['dice_pools'],poolform.rawdice)
+    ]
+    dice += [
+      DieInfo(
+        f.cleaned_data['die'],
+        "Custom %d" % f.num,
+        "",
+        "Custom %d:\n%s"%(f.num,string.join(f.rawdice))
+      )
+      for f in customdiemanager.base_forms()
     ]
 
   return dice

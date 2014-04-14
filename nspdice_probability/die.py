@@ -257,8 +257,8 @@ _RE_CONST = re.compile('^(\d+)$')
 _RE_SINGLE = re.compile('^[dD](\d+)$')
 _RE_MULTI = re.compile('^(\d+)[dD](\d+)$')
 _RE_SEQ = re.compile('^[dD](\d+)-[dD](\d+)$')
-
 _RE_POOL = re.compile('^(\d*)[pP]$')
+_RE_LIST = re.compile('^(\d*)\[(\d+(?:,\d+)*)\]$')
 
 _DIE_SEQ = [4,6,8,10,12,20]
 
@@ -276,7 +276,7 @@ def from_string(makedie,raw,max_sides=None,max_dice=None):
   """
   rawdice = raw.split()
   if len(rawdice) == 0:
-    return None
+    return (None,rawdice)
 
   countdice = DiceCounter(max_dice).count
   readsides = SideReader(max_sides).read
@@ -341,10 +341,46 @@ def from_string(makedie,raw,max_sides=None,max_dice=None):
       die += makedie(_POOL_DIE).duplicate(copies)
       continue
 
+    # Check for a list of probabilities
+    m = _RE_LIST.match(rd)
+    if m:
+      try:
+        copies = int(m.group(1))
+      except ValueError:
+        copies = 1
+      try:
+        prob = [int(p) for p in m.group(2).split(',')]
+      except ValueError:
+        raise DieParseException("Invalid die: %s"%rd)
+
+      countdice(copies)
+      readsides(len(prob))
+
+      try:
+        die += makedie(prob).duplicate(copies)
+      except ValueError:
+        raise DieParseException("Invalid die: %s"%rd)
+      continue
+
     # None of the above matched; the die is invalid.
     raise DieParseException("Invalid die: %s"%rd)
     
-  return die
+  return (die,rawdice)
+
+_RE_RANGE = re.compile('^(\d+)-(\d+)$')
+
+class PoolBuilder(object):
+  def __init__(self,makedie,max_dice=None):
+    self.makedie = makedie
+    self.counter = DiceCounter(max_dice)
+    self.dice = []
+    self.rawdice = []
+
+  def add(self,copies):
+    self.counter.reset()
+    self.counter.count(copies)
+    self.dice.append(self.makedie(_POOL_DIE).duplicate(copies))
+    self.rawdice.append(str(copies))
 
 def pool_from_string(makedie,raw,max_dice=None):
   """
@@ -356,25 +392,30 @@ def pool_from_string(makedie,raw,max_dice=None):
     max_dice:   Maximum number of dice described in the input.
                 None for infinite, the default.
   """
-  rawdice = raw.split()
-  dice = []
-
-  counter = DiceCounter(max_dice)
+  pools = PoolBuilder(makedie,max_dice)
 
   # For each proposed die
-  for rd in rawdice:
+  for r in raw.split():
+    m = _RE_RANGE.match(r)
     try:
-      copies = int(rd)
-      if copies<0:
-        raise ValueError()
+      if m:
+        beg = int(m.group(1))
+        end = int(m.group(2))
+        if beg<0 or end<0 or beg>end:
+          raise ValueError()
+        if end-beg+1>30:
+          raise DieParseException("Max allowed range length is 30.")
+        for copies in range(beg,end+1):
+          pools.add(copies)
+      else:
+        copies = int(r)
+        if copies<0:
+          raise ValueError()
+        pools.add(copies)
     except ValueError:
-      raise DieParseException("Invalid die: %s"%rd)
-
-    counter.reset()
-    dice.append(makedie(_POOL_DIE).duplicate(copies))
-    counter.count(copies)
+      raise DieParseException("Invalid dice: %s"%r)
     
-  return dice
+  return (pools.dice,pools.rawdice)
 
 class LazyDie(object):
   """A lazy implementation of a die."""
