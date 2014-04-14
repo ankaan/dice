@@ -2,8 +2,9 @@
 {% load nsptags %}
 {% load future %}
 
-{% block title %}NSP Probability to roll certain numbers{% endblock %}
+{% block title %}Plot for probability to roll a certain number{% endblock %}
 
 {% block result %}
+<h1>Plot for probability to roll a certain number</h1>
 <img src="{% url 'ref-plot' %}?{{ getvars }}" alt="Probability plot" />
 {% endblock %}

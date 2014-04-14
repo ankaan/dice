@@ -377,7 +377,11 @@ def plot_box(dice):
     boxes = [ d.die.percentile_reach(_BOX_PERCENTILES) for d in reversed(dice) ]
   except ValueError:
     boxes = []
-  manual_boxplot(ax, boxes, vert=0)
+
+  if boxes:
+    manual_boxplot(ax, boxes, vert=0)
+  else:
+    ax.plot([])
 
   ax.set_yticklabels([ d.both() for d in reversed(dice) ])
 

@@ -2,8 +2,9 @@
 {% load nsptags %}
 {% load future %}
 
-{% block title %}NSP Probability to reach target sums{% endblock %}
+{% block title %}Plot for probability to reach target sums{% endblock %}
 
 {% block result %}
+<h1>Plot for probability to reach target sums</h1>
 <img src="{% url 'ref-plot' %}?{{ getvars }}" alt="Probability plot" />
 {% endblock %}

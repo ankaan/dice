@@ -2,8 +2,10 @@
 {% load nsptags %}
 {% load future %}
 
-{% block title %}NSP Probability to reach target sums{% endblock %}
+{% block title %}Box plot for probability to reach target sums{% endblock %}
 
 {% block result %}
+<h1>Box plot for probability to reach a target sums</h1>
+<p>The whiskers represent the 95th and 5th percentile.</p>
 <img src="{% url 'ref-plot' %}?{{ getvars }}" alt="Probability plot" />
 {% endblock %}
