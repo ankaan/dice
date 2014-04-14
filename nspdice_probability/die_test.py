@@ -15,6 +15,9 @@ class TestDie(TestCase):
       self.assertEquals(d([0,0.5,0.5,0]),d([0,0.5,0.5]))
       self.assertEquals(d([0,1,1,1,1]),d([0,0.25,0.25,0.25,0.25]))
 
+      self.assertEquals(d([0,1,1,1,1]).probability(),d(4).probability())
+      self.assertEquals(d([0,1,1,1,1,0,0,0]).probability(),d(4).probability())
+
       seq = [0.0, 0.2, 0.3, 0.5]
       self.assertEquals(d(seq).probability(),seq)
 
@@ -144,18 +147,18 @@ class TestDie(TestCase):
 
   def test_from_string(self):
     for d in (Die,LazyDie):
-      self.assertEquals(from_string(d,""),None)
-      self.assertEquals(from_string(d," "),None)
-      self.assertEquals(from_string(d,"d4"),d(4))
-      self.assertEquals(from_string(d,"2d6"),d(6).duplicate(2))
-      self.assertEquals(from_string(d," D12"),d(12))
-      self.assertEquals(from_string(d,"13  "),d.const(13))
-      self.assertEquals(from_string(d,"13 2"),d.const(13)+d.const(2))
-      self.assertEquals(from_string(d,"d20 d8 d4"),d(20)+d(8)+d(4))
-      self.assertEquals(from_string(d,"d4-d4"),d(4))
+      self.assertEquals(from_string(d,""),(None,[]))
+      self.assertEquals(from_string(d," "),(None,[]))
+      self.assertEquals(from_string(d,"d4"),(d(4),["d4"]))
+      self.assertEquals(from_string(d,"2d6"),(d(6).duplicate(2),["2d6"]))
+      self.assertEquals(from_string(d," D12"),(d(12),["D12"]))
+      self.assertEquals(from_string(d,"13  "),(d.const(13),["13"]))
+      self.assertEquals(from_string(d,"13 2"),(d.const(13)+d.const(2),["13","2"]))
+      self.assertEquals(from_string(d,"d20 d8 d4"),(d(20)+d(8)+d(4),["d20","d8","d4"]))
+      self.assertEquals(from_string(d,"d4-d4"),(d(4),["d4-d4"]))
       self.assertEquals(
           from_string(d,"d4-d20"),
-          d(4) + d(6) + d(8) + d(10) + d(12) + d(20))
+          (d(4) + d(6) + d(8) + d(10) + d(12) + d(20),["d4-d20"]))
 
       self.assertRaises(DieParseException,from_string,d,"12e3")
       self.assertRaises(DieParseException,from_string,d,"h")
@@ -164,11 +167,11 @@ class TestDie(TestCase):
 
       self.assertEquals(
           from_string(d,"5d10",max_dice=5,max_sides=10),
-          d(10).duplicate(5))
+          (d(10).duplicate(5),["5d10"]))
 
       self.assertEquals(
           from_string(d,"2d10 3d10",max_dice=5,max_sides=10),
-          d(10).duplicate(2) + d(10).duplicate(3))
+          (d(10).duplicate(2) + d(10).duplicate(3),["2d10","3d10"]))
 
       self.assertRaises(DieParseException,
           from_string, d, "6d10", max_dice=5, max_sides=10)
@@ -180,8 +183,8 @@ class TestDie(TestCase):
           from_string, d, "2d11", max_dice=5, max_sides=10)
 
       pool = d([7,4,1])
-      self.assertEquals(from_string(d,"3p p"),pool.duplicate(3) + pool)
-      self.assertEquals(from_string(d,"3p d4"),pool.duplicate(3) + d(4))
+      self.assertEquals(from_string(d,"3p p"),(pool.duplicate(3) + pool,["3p","p"]))
+      self.assertEquals(from_string(d,"3p d4"),(pool.duplicate(3) + d(4),["3p","d4"]))
 
   def test_fastsum(self):
     self.assertEquals(fastsum([Die(10)]), Die(10))
@@ -191,16 +194,52 @@ class TestDie(TestCase):
   def test_pool_from_string(self):
     for d in (Die,LazyDie):
       pool = d([7,4,1])
-      self.assertEquals(pool_from_string(d,""),[])
-      self.assertEquals(pool_from_string(d," "),[])
-      self.assertEquals(pool_from_string(d,"0"),[d([1])])
-      self.assertEquals(pool_from_string(d,"1"),[pool])
-      self.assertEquals(pool_from_string(d,"5"),[pool.duplicate(5)])
-      self.assertEquals(pool_from_string(d,"3 4"),[pool.duplicate(3), pool.duplicate(4)])
+      self.assertEquals(pool_from_string(d,""),([],[]))
+      self.assertEquals(pool_from_string(d," "),([],[]))
+      self.assertEquals(pool_from_string(d,"0"),([d([1])],["0"]))
+      self.assertEquals(pool_from_string(d,"1"),([pool],["1"]))
+      self.assertEquals(pool_from_string(d,"5"),([pool.duplicate(5)],["5"]))
+      self.assertEquals(pool_from_string(d,"3 4"),([pool.duplicate(3), pool.duplicate(4)],["3","4"]))
+      self.assertEquals(pool_from_string(d,"4-6"),([pool.duplicate(4), pool.duplicate(5), pool.duplicate(6)],["4","5","6"]))
+      self.assertEquals(pool_from_string(d,"3-3"),([pool.duplicate(3)],["3"]))
 
-      self.assertEquals(pool_from_string(d,"5",max_dice=5),[pool.duplicate(5)])
+      self.assertEquals(pool_from_string(d,"1-30"),(
+        [pool.duplicate(i) for i in range(1,31)],
+        [str(i) for i in range (1,31)]))
+
+      self.assertEquals(pool_from_string(d,"5",max_dice=5),([pool.duplicate(5)],["5"]))
 
       self.assertRaises(DieParseException, pool_from_string, d, "-1")
       self.assertRaises(DieParseException, pool_from_string, d, "6", max_dice=5)
       self.assertRaises(DieParseException, pool_from_string, d, "4p")
       self.assertRaises(DieParseException, pool_from_string, d, "p")
+      self.assertRaises(DieParseException, pool_from_string, d, "3-2")
+      self.assertRaises(DieParseException, pool_from_string, d, "1-31")
+
+  def test_percentile_reach(self):
+    for d in (Die,LazyDie):
+      self.assertEquals(d(4).percentile_reach([0.5]),[3.0])
+      self.assertEquals(d(4).percentile_reach([0.75]),[2.0])
+      self.assertEquals(d(4).percentile_reach([0.25]),[4.0])
+      self.assertEquals(d(4).percentile_reach([1.0]),[1.0])
+      self.assertEquals(d(4).percentile_reach([0.0]),[4.0])
+      self.assertEquals(d(4).percentile_reach([0.001]),[4.0])
+      self.assertEquals(d(4).percentile_reach([0.999]),[1.0])
+
+      self.assertEquals(d([0,0,0,0,1,1,0,0,0,0]).percentile_reach([1.0]),[4.0])
+      self.assertEquals(d([0,1,1,0,0,0,0]).percentile_reach([0.5]),[2.0])
+
+      self.assertEquals(d([0,1,2,1]).percentile_reach([0.5]),[2.5])
+      self.assertEquals(d([0,1,1,0,1,1]).percentile_reach([0.5]),[3.0])
+      self.assertEquals(d([0,0,1,0,1]).percentile_reach([0.5]),[3.0])
+
+      self.assertEquals(d(4).percentile_reach([1]),d(4).percentile_reach([1.0]))
+      self.assertEquals(d(4).percentile_reach([0]),d(4).percentile_reach([0.0]))
+
+      self.assertRaises(ValueError, d(4).percentile_reach, [-0.1])
+      self.assertRaises(ValueError, d(4).percentile_reach, [1.1])
+
+      self.assertEquals(round(d(10).percentile_reach([0.5])[0],7),6.0)
+      self.assertEquals(round(d(10).percentile_reach([0.75])[0],7),3.5)
+
+      self.assertEquals(d(4).percentile_reach([0.75,0.5,0.25]),[2.0, 3.0, 4.0])

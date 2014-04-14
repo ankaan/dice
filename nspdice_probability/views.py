@@ -15,6 +15,8 @@ matplot_use('cairo')
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.pyplot import Axes
+from nspdice_probability.boxplot import manual_boxplot
+from pylab import yticks
 
 MAX_DICE = 10
 MAX_SIDES = 30
@@ -63,6 +65,7 @@ class ModeForm(forms.Form):
     ('vs','Versus'),
     ('plot_target','Target Plot'),
     ('plot_prob','Probability Plot'),
+    ('plot_box','Box Plot'),
   )
 
   mode =  forms.ChoiceField(choices=MODE_CHOICES,required=False)
@@ -233,7 +236,7 @@ def _probability_reference(request, stage):
   elif mode == 'plot_target':
     if stage=='plot':
       dice = build_dice(columnmanager,customdiemanager,poolform)
-      return prob_plot(request,dice,target=True)
+      return plot_prob(dice,target=True)
     else:
       getvars = urllib.urlencode(request.GET)
 
@@ -247,11 +250,25 @@ def _probability_reference(request, stage):
   elif mode == 'plot_prob':
     if stage=='plot':
       dice = build_dice(columnmanager,customdiemanager,poolform)
-      return prob_plot(request,dice,target=False)
+      return plot_prob(dice,target=False)
     else:
       getvars = urllib.urlencode(request.GET)
 
       return render(request, 'plot_prob.html', {
+        'modeform': modeform,
+        'columnmanager': columnmanager,
+        'customdiemanager': customdiemanager,
+        'poolform': poolform,
+        'getvars': getvars,
+      })
+  elif mode == 'plot_box':
+    if stage=='plot':
+      dice = build_dice(columnmanager,customdiemanager,poolform)
+      return plot_box(dice)
+    else:
+      getvars = urllib.urlencode(request.GET)
+
+      return render(request, 'plot_box.html', {
         'modeform': modeform,
         'columnmanager': columnmanager,
         'customdiemanager': customdiemanager,
@@ -272,6 +289,12 @@ class DieInfo(object):
     self.pri = pri
     self.sec = sec
     self.details = details
+
+  def both(self):
+    return string.strip("%s\n%s" % (
+      self.pri,
+      self.sec
+    ))
 
 def build_dice(columnmanager,customdiemanager,poolform):
   dice = []
@@ -315,28 +338,18 @@ def transpose(data):
   else:
     return map(None,*data)
 
-
-def prob_plot(request,dice,target=False):
+def plot_prob(dice,target=False):
   fig = Figure(figsize=(12, 6),frameon=False)
   ax = Axes(fig,[0.07, 0.07, 0.71, 0.91])
   fig.add_axes(ax)
 
-  ymax = 0
   for d in dice:
     if target:
       result = d.die.probability_reach()+[0.0]
     else:
       result = d.die.probability()+[0.0]
 
-    result = [ max(r,0) for r in result ]
-
-    ymax = max(ymax,max(result))
-
-    label = string.strip("%s\n%s" % (
-      d.pri,
-      d.sec,
-    ))
-    ax.plot(result,'-o',label=label)
+    ax.plot(result,'-o',label=d.both())
   
   ax.set_ylabel('Probability')
   if target:
@@ -352,3 +365,28 @@ def prob_plot(request,dice,target=False):
   response = HttpResponse(content_type='image/png')
   canvas.print_png(response)
   return response
+
+_BOX_PERCENTILES = [0.95, 0.75, 0.5, 0.25, 0.05]
+
+def plot_box(dice):
+  fig = Figure(figsize=(12, 6),frameon=False)
+  ax = Axes(fig,[0.15, 0.07, 0.84, 0.91])
+  fig.add_axes(ax)
+
+  try:
+    boxes = [ d.die.percentile_reach(_BOX_PERCENTILES) for d in reversed(dice) ]
+  except ValueError:
+    boxes = []
+  manual_boxplot(ax, boxes, vert=0)
+
+  ax.set_yticklabels([ d.both() for d in reversed(dice) ])
+
+  ax.set_xlabel('Sum')
+
+  ax.grid(True)
+
+  canvas = FigureCanvas(fig)
+  response = HttpResponse(content_type='image/png')
+  canvas.print_png(response)
+  return response
+

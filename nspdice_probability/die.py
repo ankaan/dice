@@ -45,11 +45,12 @@ class Die(object):
 
         self._sides = [ float(s)/total_probability for s in arg ]
 
-        for (i,s) in enumerate(reversed(self._sides),1):
-          if s>0.0:
-            break
-          else:
-            del self._sides[-i]
+        # Remove trailing sides with 0 probability.
+        i = len(self._sides)
+        while self._sides[i-1] == 0.0:
+          i -= 1
+        self._sides[i:] = []
+
     elif type(arg) is int:
       if arg>0:
         self._sides = [0.0] + [1.0/arg]*arg
@@ -179,7 +180,7 @@ class Die(object):
 
       s = 1.0
       for w in self._sides:
-        self._reach.append(s)
+        self._reach.append(max(s,0))
         s -= w
 
   def probability_reach(self):
@@ -210,6 +211,43 @@ class Die(object):
       rnd -= w
       if rnd < 0.0:
         return i
+
+  def percentile_reach(self,percentiles):
+    """
+    Get the target values corresponding to the percentiles. A target value can be a rational number between the two closest integers.
+    """
+    return [ self._percentile_reach(p) for p in percentiles ]
+
+  def _percentile_reach(self,p):
+    """
+    Get the target value corresponding to the percentile. The target value can be a rational number.
+    """
+    p = float(p)
+    result = self.probability_reach() + [0.0]
+    if p<0.0 or p>1.0:
+      raise ValueError("Percentile must in [0.0, 1.0]")
+
+    i = 0
+    while result[i]==1.0:
+      i += 1
+    if p>result[i]:
+      return i-1
+
+    i = len(result)-1
+    while result[i]==0.0:
+      i -= 1
+    if p<result[i]:
+      return i
+
+    right = 1
+    while result[right]>p:
+      right += 1
+
+    left = right-1
+    while result[left]==result[right]:
+      left -= 1
+
+    return left + (right-left)*(result[left]-p)/(result[left]-result[right])
 
 class DiceCounter(object):
   """
@@ -506,6 +544,10 @@ class LazyDie(object):
   @inheritdoc(Die)
   def roll(self,*args,**kwargs):
     return self.collapsed().roll(*args,**kwargs)
+
+  @inheritdoc(Die)
+  def percentile_reach(self,*args,**kwargs):
+    return self.collapsed().percentile_reach(*args,**kwargs)
 
 class DieQueue(AbstractQueue):
   def priority(self,obj):
