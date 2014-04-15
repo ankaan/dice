@@ -9,7 +9,7 @@ fi
 
 PATH_TO_SCRIPT=$(cd ${0%/*} && echo $PWD/${0##*/})
 
-INSTANCE="nspdice"
+INSTANCE="dice"
 
 PROJDIR="$(dirname $PATH_TO_SCRIPT)"
 SOCKET=""

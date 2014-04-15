@@ -1,4 +1,4 @@
-from nspdice_probability.queue import AbstractQueue
+from dice_probability.queue import AbstractQueue
 from django.test import TestCase
 from heapq import heapify
 

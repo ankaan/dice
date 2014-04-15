@@ -7,6 +7,6 @@ Replace this with more appropriate tests for your application.
 
 from django.test import TestCase
 
-from nspdice_probability.die_test import *
-from nspdice_probability.queue_test import *
-from nspdice_probability.doc_test import *
+from dice_probability.die_test import *
+from dice_probability.queue_test import *
+from dice_probability.doc_test import *

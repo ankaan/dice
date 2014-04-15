@@ -4,8 +4,8 @@ Combine dice and compute probabilities for the composite die, also allow rolling
 import random
 import re
 
-from nspdice_probability.queue import AbstractQueue
-from nspdice_probability.doc import docfrom, inheritdoc
+from dice_probability.queue import AbstractQueue
+from dice_probability.doc import docfrom, inheritdoc
 
 class DieParseException(Exception):
   """

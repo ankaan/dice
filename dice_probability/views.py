@@ -2,9 +2,9 @@ from django import forms
 from django.http import HttpResponse
 from django.shortcuts import render
 
-from nspdice_probability.die import LazyDie as Die
-from nspdice_probability.die import DieParseException, from_string, pool_from_string
-from nspdice_probability.formmanager import manager_factory
+from dice_probability.die import LazyDie as Die
+from dice_probability.die import DieParseException, from_string, pool_from_string
+from dice_probability.formmanager import manager_factory
 
 import string
 import urllib
@@ -15,7 +15,7 @@ matplot_use('cairo')
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.pyplot import Axes
-from nspdice_probability.boxplot import manual_boxplot
+from dice_probability.boxplot import manual_boxplot
 from pylab import yticks
 
 MAX_DICE = 10

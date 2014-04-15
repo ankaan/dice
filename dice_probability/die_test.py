@@ -1,5 +1,5 @@
-from nspdice_probability.die import Die, LazyDie
-from nspdice_probability.die import DieParseException, from_string, pool_from_string, fastsum
+from dice_probability.die import Die, LazyDie
+from dice_probability.die import DieParseException, from_string, pool_from_string, fastsum
 from django.test import TestCase
 
 class TestDie(TestCase):
