@@ -24,11 +24,6 @@ function usage() {
   echo "usage: $PROGRAM {start,stop,restart}"
 }
 
-if [[ "x$1" == "x" ]]; then
-  usage
-  exit 0
-fi
-
 function start() {
   if [[ -e $PIDFILE ]]; then
     echo "service $INSTANCE already started"
