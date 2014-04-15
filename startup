@@ -11,7 +11,7 @@ INSTANCE="nspdice"
 
 PROJDIR="$(dirname $0)"
 SOCKET=""
-PIDFILE="$PROJDIR/nspdice.pid"
+PIDFILE="$PROJDIR/dice.pid"
 
 ALLOWED_ENV="PATH USER"
 
