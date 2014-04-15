@@ -7,6 +7,19 @@ if [[ "x$USER" == "xroot" ]]; then
   exit 1
 fi
 
+INSTANCE="nspdice"
+
+PROJDIR="$(dirname $0)"
+SOCKET=""
+PIDFILE="$PROJDIR/nspdice.pid"
+
+ALLOWED_ENV="PATH USER"
+
+if [[ "x$SOCKET" == "x" ]]; then
+  echo "Please select a socket!"
+  exit 1
+fi
+
 function usage() {
   echo "usage: $PROGRAM {start,stop,restart}"
 }
@@ -15,14 +28,6 @@ if [[ "x$1" == "x" ]]; then
   usage
   exit 0
 fi
-
-INSTANCE="nspdice"
-
-PROJDIR="/home/ankan/webapp/nspdice"
-SOCKET="/home/http/fastcgi/external_socket/ankan/nspdice.sock"
-PIDFILE="$PROJDIR/nspdice.pid"
-
-ALLOWED_ENV="PATH USER"
 
 function start() {
   if [[ -e $PIDFILE ]]; then
