@@ -7,9 +7,11 @@ if [[ "x$USER" == "xroot" ]]; then
   exit 1
 fi
 
+PATH_TO_SCRIPT=$(cd ${0%/*} && echo $PWD/${0##*/})
+
 INSTANCE="nspdice"
 
-PROJDIR="$(dirname $0)"
+PROJDIR="$(dirname $PATH_TO_SCRIPT)"
 SOCKET=""
 PIDFILE="$PROJDIR/dice.pid"
 
