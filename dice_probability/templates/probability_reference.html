@@ -12,7 +12,7 @@
     </div>
 
     <div class="config">
-      <div class="group">
+      <div class="section">
         <div class="visible">
           {{ poolform.dice_pools.label_tag }}
         </div>
@@ -26,23 +26,25 @@
         </div>
       </div>
 
-      {% for form in customdiemanager.forms %}
-      <div class="group">
-        <div class="{% if forloop.first %}visible{% else %}ghost{% endif %}">
-          <label for="{{ form.die.auto_id }}">Custom Dice</label>
-        </div>
+      <div class="section">
+        {% for form in customdiemanager.forms %}
+        <div class="group">
+          <div class="{% if forloop.first %}visible{% else %}ghost{% endif %}">
+            <label for="{{ form.die.auto_id }}">Custom Dice</label>
+          </div>
 
-        <div>
-          {{ form.die }}
+          <div>
+            {{ form.die }}
+          </div>
+          <div>
+            {{ form.non_field_errors }}
+            {{ form.die.errors }}
+          </div>
         </div>
-        <div>
-          {{ form.non_field_errors }}
-          {{ form.die.errors }}
-        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
 
-      <div class="group">
+      <div class="section">
         <div class="visible">
           {{ modeform.mode.label_tag }}
         </div>

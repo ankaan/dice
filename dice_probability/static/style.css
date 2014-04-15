@@ -68,28 +68,36 @@ div.result, div.config {
   background-color: #DDDDFF;
 }
 
-.config div.group {
-  margin: 0.25em;
+.config div.section {
+  margin-bottom: 0.5em;
 }
 
-.config .group select {
+.config div.group {
+  margin-top: 0.15em;
+}
+
+.config select, .config input[type="text"] {
+  margin-top: 0.1em;
+}
+
+.config select {
   min-height: 1.5em;
 }
 
-.config .group input[type="text"] {
+.config input[type="text"] {
   width: 20em;
   height: 1.2em;
 }
 
-.config .group input[type="submit"] {
+.config input[type="submit"] {
   height: 2em;
 }
 
-.config .group select, .config .group input, .config .group label {
+.config select, .config input, .config label {
   width: 10em;
 }
 
-.config .group label {
+.config label {
   display: inline-block;
   zoom: 1;
   *display: inline;
@@ -116,12 +124,12 @@ div.result, div.config {
   width: 22em;
 }
 
-.config .group .errorlist {
+.config .errorlist {
   margin: 0em;
   padding: 0em;
 }
 
-.config .group .errorlist li {
+.config .errorlist li {
   display: inline-block;
   zoom: 1;
   *display: inline;
