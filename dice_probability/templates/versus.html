@@ -9,12 +9,10 @@
 <table>
   <tr class="top">
     <td></td>
-    <td></td>
     {% for d in dice %}
     <th class="choice" title="{{ d.details }}">
       <span class="title">
         <span class="row">{{ d.pri }}</span>
-        <span class="row">{{ d.sec }}</span>
       </span>
     </th>
     {% endfor %}
@@ -25,11 +23,6 @@
     <th class="choice" title="{{ d.details }}">
       <span class="title">
         <span class="col">{{ d.pri }}</span>
-      </span>
-    </th>
-    <th class="choice" title="{{ d.details }}">
-      <span class="title">
-        <span class="col">{{ d.sec }}</span>
       </span>
     </th>
 

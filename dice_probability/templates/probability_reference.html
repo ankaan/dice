@@ -12,20 +12,6 @@
     </div>
 
     <div class="config">
-      {% for form in columnmanager.forms %}
-      <div class="group" style="display: none;">
-        <div class="{% if forloop.first %}visible{% else %}ghost{% endif %}">
-          {{ form.skill.label_tag }}
-          {{ form.attribute.label_tag }}
-        </div>
-        
-        <div>
-          {{ form.skill }}
-          {{ form.attribute }}
-        </div>
-      </div>
-      {% endfor %}
-
       <div class="group">
         <div class="visible">
           {{ poolform.dice_pools.label_tag }}
