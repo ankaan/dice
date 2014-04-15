@@ -235,7 +235,7 @@ _BOX_PERCENTILES = [0.95, 0.75, 0.5, 0.25, 0.05]
 
 def plot_box(dice):
   fig = Figure(figsize=(12, 6),frameon=False)
-  ax = Axes(fig,[0.15, 0.07, 0.84, 0.91])
+  ax = Axes(fig,[0.08, 0.07, 0.84, 0.91])
   fig.add_axes(ax)
 
   try:
